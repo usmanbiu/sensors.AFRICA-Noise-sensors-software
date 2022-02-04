@@ -221,7 +221,6 @@ namespace cfg {
 	bool sps30_read = SPS30_READ;
 	bool bmp_read = BMP_READ;
 	bool bmx280_read = BMX280_READ;
-	bool ds18b20_read = DS18B20_READ;
 	bool dnms_read = DNMS_READ;
 	char dnms_correction[LEN_DNMS_CORRECTION] = DNMS_CORRECTION;
 	bool gps_read = GPS_READ;
@@ -394,10 +393,6 @@ Adafruit_BMP085 bmp;
 BMX280 bmx280;
 
 /*****************************************************************
- * DS18B20 declaration                                            *
- *****************************************************************/
-OneWire oneWire(ONEWIRE_PIN);
-DallasTemperature ds18b20(&oneWire);
 
 /*****************************************************************
  * GPS declaration                                               *
@@ -455,7 +450,6 @@ float last_value_BMX280_P = -1.0;
 float last_value_BME280_H = -1.0;
 float last_value_DHT_T = -128.0;
 float last_value_DHT_H = -1.0;
-float last_value_DS18B20_T = -1.0;
 float last_value_HTU21D_T = -128.0;
 float last_value_HTU21D_H = -1.0;
 
@@ -1531,8 +1525,7 @@ static void webserver_config_send_body_get(String& page_content) {
 	add_form_checkbox_sensor(Config_dht_read, FPSTR(INTL_DHT22));
 	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
 	add_form_checkbox_sensor(Config_bmx280_read, FPSTR(INTL_BMX280));
-	add_form_checkbox_sensor(Config_ds18b20_read, FPSTR(INTL_DS18B20));
-
+  
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
 	page_content = emptyString;
@@ -1665,7 +1658,6 @@ static void webserver_config_send_body_post(String& page_content) {
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SPS30), sps30_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PPD42NS), ppd_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_BMX280), bmx280_read);
-	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_DS18B20), ds18b20_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_DNMS), dnms_read);
 	add_line_value(page_content, FPSTR(INTL_DNMS_CORRECTION), String(dnms_correction));
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), F("GPS"), gps_read);
@@ -1926,10 +1918,6 @@ static void webserver_values() {
 				add_table_row_from_value(page_content, FPSTR(SENSORS_BMX280), FPSTR(INTL_HUMIDITY), check_display_value(last_value_BME280_H, -1, 1, 0), unit_H);
 			}
 		}
-
-		if (cfg::ds18b20_read) {
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_DS18B20), FPSTR(INTL_TEMPERATURE), check_display_value(last_value_DS18B20_T, -128, 1, 0), unit_T);
 		}
 		if (cfg::dnms_read) {
 			page_content += FPSTR(EMPTY_ROW);
@@ -2440,7 +2428,6 @@ static void wifiConfig() {
 	debug_outln_info_bool(F("HPM: "), cfg::hpm_read);
 	debug_outln_info_bool(F("SPS30: "), cfg::sps30_read);
 	debug_outln_info_bool(F("DHT: "), cfg::dht_read);
-	debug_outln_info_bool(F("DS18B20: "), cfg::ds18b20_read);
 	debug_outln_info_bool(F("HTU21D: "), cfg::htu21d_read);
 	debug_outln_info_bool(F("BMP: "), cfg::bmp_read);
 	debug_outln_info_bool(F("DNMS: "), cfg::dnms_read);
@@ -2974,36 +2961,6 @@ static void fetchSensorBMX280(String& s) {
 	}
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_BMX280));
-}
-
-/*****************************************************************
- * read DS18B20 sensor values                                    *
- *****************************************************************/
-static void fetchSensorDS18B20(String& s) {
-	float t;
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_DS18B20));
-
-	//it's very unlikely (-127: impossible) to get these temperatures in reality. Most times this means that the sensor is currently faulty
-	//try 5 times to read the sensor, otherwise fail
-	const int MAX_ATTEMPTS = 5;
-	int count = 0;
-	do {
-		ds18b20.requestTemperatures();
-		//for now, we want to read only the first sensor
-		t = ds18b20.getTempCByIndex(0);
-		++count;
-		debug_outln_info(F("DS18B20 trying...."));
-	} while (count < MAX_ATTEMPTS && (isnan(t) || t >= 85.0f || t <= (-127.0f)));
-
-	if (count == MAX_ATTEMPTS) {
-		last_value_DS18B20_T = -128.0;
-		debug_outln_error(F("DS18B20 read failed"));
-	} else {
-		last_value_DS18B20_T = t;
-		add_Value2Json(s, F("DS18B20_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_DS18B20_T);
-	}
-	debug_outln_info(FPSTR(DBG_TXT_SEP));
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_DS18B20));
 }
 
 /*****************************************************************
@@ -4211,10 +4168,6 @@ static void display_values() {
 		t_value = last_value_DHT_T;
 		h_value = last_value_DHT_H;
 	}
-	if (cfg::ds18b20_read) {
-		t_sensor = FPSTR(SENSORS_DS18B20);
-		t_value = last_value_DS18B20_T;
-	}
 	if (cfg::htu21d_read) {
 		h_sensor = t_sensor = FPSTR(SENSORS_HTU21D);
 		t_value = last_value_HTU21D_T;
@@ -4647,10 +4600,6 @@ static void powerOnTestSensors() {
 			bmx280_init_failed = true;
 		}
 	}
-
-	if (cfg::ds18b20_read) {
-		ds18b20.begin();									// Start DS18B20
-		debug_outln_info(F("Read DS18B20..."));
 	}
 
 	if (cfg::dnms_read) {
@@ -5297,16 +5246,6 @@ void loop(void) {
 			}
 			result = emptyString;
 		}
-		if (cfg::ds18b20_read) {
-			// getting temperature (optional)
-			fetchSensorDS18B20(result);
-			data += result;
-			if(cfg::send2sd) {
-				sum_send_time += sendSD(result, DS18B20_API_PIN, FPSTR(SENSORS_DS18B20), "DS18B20_");
-			}
-      		if(cfg::wifi_enabled) {
-				sum_send_time += sendCFA(result, DS18B20_API_PIN, FPSTR(SENSORS_DS18B20), "DS18B20_");
-				sum_send_time += sendSensorCommunity(result, DS18B20_API_PIN, FPSTR(SENSORS_DS18B20), "DS18B20_");
 			}
 			result = emptyString;
 		}
