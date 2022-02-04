@@ -288,10 +288,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define SHT3X_READ 0
 #define SHT3X_API_PIN 7
 
-// DS18B20, temperature
-#define DS18B20_READ 0
-#define DS18B20_API_PIN 13
-
 // DNMS Noise Measurement
 #define DNMS_READ 0
 #define DNMS_API_PIN 15
