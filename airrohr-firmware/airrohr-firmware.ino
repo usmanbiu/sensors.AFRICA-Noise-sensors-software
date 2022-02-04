@@ -1918,7 +1918,6 @@ static void webserver_values() {
 				add_table_row_from_value(page_content, FPSTR(SENSORS_BMX280), FPSTR(INTL_HUMIDITY), check_display_value(last_value_BME280_H, -1, 1, 0), unit_H);
 			}
 		}
-		}
 		if (cfg::dnms_read) {
 			page_content += FPSTR(EMPTY_ROW);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_DNMS), FPSTR(INTL_LEQ_A), check_display_value(last_value_dnms_laeq, -1, 1, 0), unit_LA);
@@ -4600,7 +4599,6 @@ static void powerOnTestSensors() {
 			bmx280_init_failed = true;
 		}
 	}
-	}
 
 	if (cfg::dnms_read) {
 		debug_outln_info(F("Read DNMS..."));
@@ -5243,9 +5241,6 @@ void loop(void) {
 					sum_send_time += sendCFA(result, BMP280_API_PIN, FPSTR(SENSORS_BMX280), "BMP280_");
 					sum_send_time += sendSensorCommunity(result, BMP280_API_PIN, FPSTR(SENSORS_BMX280), "BMP280_");
 				}
-			}
-			result = emptyString;
-		}
 			}
 			result = emptyString;
 		}
