@@ -284,10 +284,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define BMP280_API_PIN 3
 #define BME280_API_PIN 11
 
-// SHT3x, temperature, pressure
-#define SHT3X_READ 0
-#define SHT3X_API_PIN 7
-
 // DNMS Noise Measurement
 #define DNMS_READ 0
 #define DNMS_API_PIN 15
