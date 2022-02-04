@@ -73,13 +73,6 @@ Please refer to the [Pinout of NodeMCU v2 and v3](https://github.com/opendata-st
 * Pin 3 => unused
 * Pin 4 => GND
 
-### DS18B20 (OneWire interface)
-Please check your version (pinout) at [https://datasheets.maximintegrated.com/en/ds/DS18B20.pdf]
-Uses the same PIN D7 as DHT22, so DHT22 OR DS18B20 can be used. 
-* GND  -> Pin GND
-* DQ   -> Pin D7 (GPIO 13)
-* VCC  -> Pin 3V3 or Pin VU
-
 ### PMS1003 to PMS6003
 Pinout:
    8 7 6 5 4 3 2 1
