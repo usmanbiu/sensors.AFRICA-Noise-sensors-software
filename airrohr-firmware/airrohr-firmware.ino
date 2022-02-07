@@ -220,7 +220,6 @@ namespace cfg {
 	bool hpm_read = HPM_READ;
 	bool sps30_read = SPS30_READ;
 	bool bmp_read = BMP_READ;
-	bool bmx280_read = BMX280_READ;
 	bool dnms_read = DNMS_READ;
 	char dnms_correction[LEN_DNMS_CORRECTION] = DNMS_CORRECTION;
 	bool gps_read = GPS_READ;
@@ -319,7 +318,6 @@ LoggerConfig loggerConfigs[LoggerCount];
 long int sample_count = 0;
 bool htu21d_init_failed = false;
 bool bmp_init_failed = false;
-bool bmx280_init_failed = false;
 bool dnms_init_failed = false;
 bool gps_init_failed = false;
 bool rtc_init_failed = false;
@@ -388,11 +386,6 @@ Adafruit_HTU21DF htu21d;
 Adafruit_BMP085 bmp;
 
 /*****************************************************************
- * BMP/BME280 declaration                                        *
- *****************************************************************/
-BMX280 bmx280;
-
-/*****************************************************************
 
 /*****************************************************************
  * GPS declaration                                               *
@@ -445,8 +438,6 @@ int last_sendData_returncode;
 
 float last_value_BMP_T = -128.0;
 float last_value_BMP_P = -1.0;
-float last_value_BMX280_T = -128.0;
-float last_value_BMX280_P = -1.0;
 float last_value_BME280_H = -1.0;
 float last_value_DHT_T = -128.0;
 float last_value_DHT_H = -1.0;
@@ -1524,7 +1515,6 @@ static void webserver_config_send_body_get(String& page_content) {
 	add_form_checkbox_sensor(Config_sph0645_read, FPSTR(INTL_SPH0645));
 	add_form_checkbox_sensor(Config_dht_read, FPSTR(INTL_DHT22));
 	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
-	add_form_checkbox_sensor(Config_bmx280_read, FPSTR(INTL_BMX280));
   
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
@@ -1657,7 +1647,6 @@ static void webserver_config_send_body_post(String& page_content) {
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_HPM), hpm_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SPS30), sps30_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PPD42NS), ppd_read);
-	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_BMX280), bmx280_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_DNMS), dnms_read);
 	add_line_value(page_content, FPSTR(INTL_DNMS_CORRECTION), String(dnms_correction));
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), F("GPS"), gps_read);
@@ -1909,14 +1898,6 @@ static void webserver_values() {
 			page_content += FPSTR(EMPTY_ROW);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_BMP180), FPSTR(INTL_TEMPERATURE), check_display_value(last_value_BMP_T, -128, 1, 0), unit_T);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_BMP180), FPSTR(INTL_PRESSURE), check_display_value(last_value_BMP_P / 100.0f, (-1 / 100.0f), 2, 0), unit_P);
-		}
-		if (cfg::bmx280_read) {
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_BMX280), FPSTR(INTL_TEMPERATURE), check_display_value(last_value_BMX280_T, -128, 1, 0), unit_T);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_BMX280), FPSTR(INTL_PRESSURE), check_display_value(last_value_BMX280_P / 100.0f, (-1 / 100.0f), 2, 0), unit_P);
-			if (bmx280.sensorID() == BME280_SENSOR_ID) {
-				add_table_row_from_value(page_content, FPSTR(SENSORS_BMX280), FPSTR(INTL_HUMIDITY), check_display_value(last_value_BME280_H, -1, 1, 0), unit_H);
-			}
 		}
 		if (cfg::dnms_read) {
 			page_content += FPSTR(EMPTY_ROW);
@@ -2428,7 +2409,6 @@ static void wifiConfig() {
 	debug_outln_info_bool(F("SPS30: "), cfg::sps30_read);
 	debug_outln_info_bool(F("DHT: "), cfg::dht_read);
 	debug_outln_info_bool(F("HTU21D: "), cfg::htu21d_read);
-	debug_outln_info_bool(F("BMP: "), cfg::bmp_read);
 	debug_outln_info_bool(F("DNMS: "), cfg::dnms_read);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("SensorCommunity: "), cfg::send2dusti);
@@ -2928,38 +2908,6 @@ static void fetchSensorBMP(String& s) {
 	}
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_BMP180));
-}
-
-/*****************************************************************
- * read BMP280/BME280 sensor values                              *
- *****************************************************************/
-static void fetchSensorBMX280(String& s) {
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_BMX280));
-
-	bmx280.takeForcedMeasurement();
-	const auto t = bmx280.readTemperature();
-	const auto p = bmx280.readPressure();
-	const auto h = bmx280.readHumidity();
-	if (isnan(t) || isnan(p)) {
-		last_value_BMX280_T = -128.0;
-		last_value_BMX280_P = -1.0;
-		last_value_BME280_H = -1.0;
-		debug_outln_error(F("BMP/BME280 read failed"));
-	} else {
-		last_value_BMX280_T = t;
-		last_value_BMX280_P = p;
-		if (bmx280.sensorID() == BME280_SENSOR_ID) {
-			add_Value2Json(s, F("BME280_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_BMX280_T);
-			add_Value2Json(s, F("BME280_pressure"), FPSTR(DBG_TXT_PRESSURE), last_value_BMX280_P);
-			last_value_BME280_H = h;
-			add_Value2Json(s, F("BME280_humidity"), FPSTR(DBG_TXT_HUMIDITY), last_value_BME280_H);
-		} else {
-			add_Value2Json(s, F("BMP280_pressure"), FPSTR(DBG_TXT_PRESSURE), last_value_BMX280_P);
-			add_Value2Json(s, F("BMP280_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_BMX280_T);
-		}
-	}
-	debug_outln_info(FPSTR(DBG_TXT_SEP));
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_BMX280));
 }
 
 /*****************************************************************
@@ -4177,15 +4125,6 @@ static void display_values() {
 		t_value = last_value_BMP_T;
 		p_value = last_value_BMP_P;
 	}
-	if (cfg::bmx280_read) {
-		t_sensor = p_sensor = FPSTR(SENSORS_BMX280);
-		t_value = last_value_BMX280_T;
-		p_value = last_value_BMX280_P;
-		if (bmx280.sensorID() == BME280_SENSOR_ID) {
-			h_sensor = FPSTR(SENSORS_BMX280);
-			h_value = last_value_BME280_H;
-		}
-	}
 	if (cfg::dnms_read) {
 		la_sensor = FPSTR(SENSORS_DNMS);
 		la_eq_value = last_value_dnms_laeq;
@@ -4416,26 +4355,6 @@ static void init_lcd() {
 }
 
 /*****************************************************************
- * Init BMP280/BME280                                            *
- *****************************************************************/
-static bool initBMX280(char addr) {
-	debug_out(String(F("Trying BMP280/BME280 sensor on ")) + String(addr, HEX), DEBUG_MIN_INFO);
-
-	if (bmx280.begin(addr)) {
-		debug_outln_info(FPSTR(DBG_TXT_FOUND));
-		bmx280.setSampling(
-			BMX280::MODE_FORCED,
-			BMX280::SAMPLING_X1,
-			BMX280::SAMPLING_X1,
-			BMX280::SAMPLING_X1);
-		return true;
-	} else {
-		debug_outln_info(FPSTR(DBG_TXT_NOT_FOUND));
-		return false;
-	}
-}
-
-/*****************************************************************
    Init SPS30 PM Sensor
  *****************************************************************/
 static void initSPS30() {
@@ -4589,14 +4508,6 @@ static void powerOnTestSensors() {
 		if (!bmp.begin()) {
 			debug_outln_error(F("No valid BMP085 sensor, check wiring!"));
 			bmp_init_failed = true;
-		}
-	}
-
-	if (cfg::bmx280_read) {
-		debug_outln_info(F("Read BMP280/BME280..."));
-		if (!initBMX280(0x76) && !initBMX280(0x77)) {
-			debug_outln_error(F("Check BMP280/BME280 wiring"));
-			bmx280_init_failed = true;
 		}
 	}
 
@@ -5218,29 +5129,6 @@ void loop(void) {
       		if(cfg::wifi_enabled) {
 				sum_send_time += sendCFA(result, BMP_API_PIN, FPSTR(SENSORS_BMP180), "BMP_");
 				sum_send_time += sendSensorCommunity(result, BMP_API_PIN, FPSTR(SENSORS_BMP180), "BMP_");
-			}
-			result = emptyString;
-		}
-		if (cfg::bmx280_read && (! bmx280_init_failed)) {
-			// getting temperature, humidity and pressure (optional)
-			fetchSensorBMX280(result);
-			data += result;
-			if (bmx280.sensorID() == BME280_SENSOR_ID) {
-				if(cfg::send2sd) {
-					sum_send_time += sendSD(result, BME280_API_PIN, FPSTR(SENSORS_BMX280), "BME280_");
-				}
-        		if(cfg::wifi_enabled){
-					sum_send_time += sendCFA(result, BME280_API_PIN, FPSTR(SENSORS_BMX280), "BME280_");
-					sum_send_time += sendSensorCommunity(result, BME280_API_PIN, FPSTR(SENSORS_BMX280), "BME280_");
-				}
-			} else {
-				if(cfg::send2sd){
-					sum_send_time += sendSD(result, BMP280_API_PIN, FPSTR(SENSORS_BMX280), "BMP280_");
-				}
-        		if(cfg::wifi_enabled) {
-					sum_send_time += sendCFA(result, BMP280_API_PIN, FPSTR(SENSORS_BMX280), "BMP280_");
-					sum_send_time += sendSensorCommunity(result, BMP280_API_PIN, FPSTR(SENSORS_BMX280), "BMP280_");
-				}
 			}
 			result = emptyString;
 		}

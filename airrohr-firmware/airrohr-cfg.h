@@ -43,7 +43,6 @@ enum ConfigShapeId {
 	Config_hpm_read,
 	Config_sps30_read,
 	Config_bmp_read,
-	Config_bmx280_read,
 	Config_dnms_read,
 	Config_dnms_correction,
 	Config_gps_read,
@@ -114,7 +113,6 @@ const char CFG_KEY_PMS_READ[] PROGMEM = "pms_read";
 const char CFG_KEY_HPM_READ[] PROGMEM = "hpm_read";
 const char CFG_KEY_SPS30_READ[] PROGMEM = "sps30_read";
 const char CFG_KEY_BMP_READ[] PROGMEM = "bmp_read";
-const char CFG_KEY_BMX280_READ[] PROGMEM = "bmx280_read";
 const char CFG_KEY_DNMS_READ[] PROGMEM = "dnms_read";
 const char CFG_KEY_DNMS_CORRECTION[] PROGMEM = "dnms_correction";
 const char CFG_KEY_GPS_READ[] PROGMEM = "gps_read";
@@ -185,7 +183,6 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_HPM_READ), &cfg::hpm_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SPS30_READ), &cfg::sps30_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_BMP_READ), &cfg::bmp_read },
-	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_BMX280_READ), &cfg::bmx280_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_DNMS_READ), &cfg::dnms_read },
 	{ Config_Type_String, sizeof(cfg::dnms_correction)-1, FPSTR(CFG_KEY_DNMS_CORRECTION), cfg::dnms_correction },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_GPS_READ), &cfg::gps_read },
