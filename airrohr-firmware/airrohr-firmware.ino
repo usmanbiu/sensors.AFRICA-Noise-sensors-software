@@ -107,7 +107,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <SD.h>
 #include <SPI.h>
 #include <Adafruit_HTU21DF.h>
-#include <Adafruit_BMP085.h>
 #include <StreamString.h>
 #include <DallasTemperature.h>
 #include <TinyGPS++.h>
@@ -219,7 +218,6 @@ namespace cfg {
 	bool pms_read = PMS_READ;
 	bool hpm_read = HPM_READ;
 	bool sps30_read = SPS30_READ;
-	bool bmp_read = BMP_READ;
 	bool dnms_read = DNMS_READ;
 	char dnms_correction[LEN_DNMS_CORRECTION] = DNMS_CORRECTION;
 	bool gps_read = GPS_READ;
@@ -317,7 +315,6 @@ LoggerConfig loggerConfigs[LoggerCount];
 
 long int sample_count = 0;
 bool htu21d_init_failed = false;
-bool bmp_init_failed = false;
 bool dnms_init_failed = false;
 bool gps_init_failed = false;
 bool rtc_init_failed = false;
@@ -381,13 +378,6 @@ PCF8575 pcf8575(0x20);
 Adafruit_HTU21DF htu21d;
 
 /*****************************************************************
- * BMP declaration                                               *
- *****************************************************************/
-Adafruit_BMP085 bmp;
-
-/*****************************************************************
-
-/*****************************************************************
  * GPS declaration                                               *
  *****************************************************************/
 TinyGPSPlus gps;
@@ -436,8 +426,6 @@ unsigned long last_update_attempt;
 int last_update_returncode;
 int last_sendData_returncode;
 
-float last_value_BMP_T = -128.0;
-float last_value_BMP_P = -1.0;
 float last_value_BME280_H = -1.0;
 float last_value_DHT_T = -128.0;
 float last_value_DHT_H = -1.0;
@@ -1530,7 +1518,6 @@ static void webserver_config_send_body_get(String& page_content) {
 	page_content += FPSTR(WEB_B_BR);
 
 	add_form_checkbox_sensor(Config_pms_read, FPSTR(INTL_PMS));
-	add_form_checkbox_sensor(Config_bmp_read, FPSTR(INTL_BMP180));
 	add_form_checkbox(Config_gps_read, FPSTR(INTL_NEO6M));
 
 	page_content += FPSTR(WEB_BR_LF_B);
@@ -1893,11 +1880,6 @@ static void webserver_values() {
 			page_content += FPSTR(EMPTY_ROW);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_HTU21D), FPSTR(INTL_TEMPERATURE), check_display_value(last_value_HTU21D_T, -128, 1, 0), unit_T);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_HTU21D), FPSTR(INTL_HUMIDITY), check_display_value(last_value_HTU21D_H, -1, 1, 0), unit_H);
-		}
-		if (cfg::bmp_read) {
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_BMP180), FPSTR(INTL_TEMPERATURE), check_display_value(last_value_BMP_T, -128, 1, 0), unit_T);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_BMP180), FPSTR(INTL_PRESSURE), check_display_value(last_value_BMP_P / 100.0f, (-1 / 100.0f), 2, 0), unit_P);
 		}
 		if (cfg::dnms_read) {
 			page_content += FPSTR(EMPTY_ROW);
@@ -2886,28 +2868,6 @@ static void fetchSensorHTU21D(String& s) {
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 
 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_HTU21D));
-}
-
-/*****************************************************************
- * read BMP180 sensor values                                     *
- *****************************************************************/
-static void fetchSensorBMP(String& s) {
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_BMP180));
-
-	const auto p = bmp.readPressure();
-	const auto t = bmp.readTemperature();
-	if (isnan(p) || isnan(t)) {
-		last_value_BMP_T = -128.0;
-		last_value_BMP_P = -1.0;
-		debug_outln_error(F("BMP180 read failed"));
-	} else {
-		last_value_BMP_T = t;
-		last_value_BMP_P = p;
-		add_Value2Json(s, F("BMP_pressure"), FPSTR(DBG_TXT_PRESSURE), last_value_BMP_P);
-		add_Value2Json(s, F("BMP_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_BMP_T);
-	}
-	debug_outln_info(FPSTR(DBG_TXT_SEP));
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_BMP180));
 }
 
 /*****************************************************************
@@ -4120,11 +4080,6 @@ static void display_values() {
 		t_value = last_value_HTU21D_T;
 		h_value = last_value_HTU21D_H;
 	}
-	if (cfg::bmp_read) {
-		t_sensor = h_sensor = FPSTR(SENSORS_BMP180);
-		t_value = last_value_BMP_T;
-		p_value = last_value_BMP_P;
-	}
 	if (cfg::dnms_read) {
 		la_sensor = FPSTR(SENSORS_DNMS);
 		la_eq_value = last_value_dnms_laeq;
@@ -4502,15 +4457,6 @@ static void powerOnTestSensors() {
 			htu21d_init_failed = true;
 		}
 	}
-
-	if (cfg::bmp_read) {
-		debug_outln_info(F("Read BMP..."));
-		if (!bmp.begin()) {
-			debug_outln_error(F("No valid BMP085 sensor, check wiring!"));
-			bmp_init_failed = true;
-		}
-	}
-
 	if (cfg::dnms_read) {
 		debug_outln_info(F("Read DNMS..."));
 		initDNMS();
@@ -5116,19 +5062,6 @@ void loop(void) {
       		if(cfg::wifi_enabled) {
 				sum_send_time += sendCFA(result, HTU21D_API_PIN, FPSTR(SENSORS_HTU21D), "HTU21D_");
 				sum_send_time += sendSensorCommunity(result, HTU21D_API_PIN, FPSTR(SENSORS_HTU21D), "HTU21D_");
-			}
-			result = emptyString;
-		}
-		if (cfg::bmp_read && (! bmp_init_failed)) {
-			// getting temperature and pressure (optional)
-			fetchSensorBMP(result);
-			data += result;
-			if(cfg::send2sd) {
-				sum_send_time += sendSD(result, BMP_API_PIN, FPSTR(SENSORS_BMP180), "BMP_");
-			}
-      		if(cfg::wifi_enabled) {
-				sum_send_time += sendCFA(result, BMP_API_PIN, FPSTR(SENSORS_BMP180), "BMP_");
-				sum_send_time += sendSensorCommunity(result, BMP_API_PIN, FPSTR(SENSORS_BMP180), "BMP_");
 			}
 			result = emptyString;
 		}

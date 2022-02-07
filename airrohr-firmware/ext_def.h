@@ -275,10 +275,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define SPS30_WAITING_AFTER_LAST_READ 11000   // waiting time after last reading mesurement data in ms
 #define SPS30_AUTO_CLEANING_INTERVAL 7200 // time in seconds
 
-// BMP180, temperature, pressure
-#define BMP_READ 0
-#define BMP_API_PIN 3
-
 // DNMS Noise Measurement
 #define DNMS_READ 0
 #define DNMS_API_PIN 15
