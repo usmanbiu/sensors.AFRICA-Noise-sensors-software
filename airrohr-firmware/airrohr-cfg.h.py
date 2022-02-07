@@ -19,7 +19,6 @@ Bool		sds_read
 Bool		pms_read
 Bool		hpm_read
 Bool		sps30_read
-Bool		bmx280_read
 Bool		dnms_read
 String		dnms_correction
 Bool		gps_read

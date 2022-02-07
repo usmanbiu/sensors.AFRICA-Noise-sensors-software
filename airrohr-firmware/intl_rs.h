@@ -28,7 +28,6 @@ const char INTL_PPD42NS[] PROGMEM = "PPD42NS ({pm})";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DHT22[] PROGMEM = "DHT22 ({t}, {h})";
 const char INTL_HTU21D[] PROGMEM = "HTU21D ({t}, {h})";
-const char INTL_BMX280[] PROGMEM = "BMP280/BME280 ({t}, {h}, {p})";
 const char INTL_DNMS[] PROGMEM = "DNMS ({l_a})";
 const char INTL_DNMS_CORRECTION[] PROGMEM ="Korekcija u dB(A)";
 const char INTL_NEO6M[] PROGMEM = "GPS (NEO 6M)";

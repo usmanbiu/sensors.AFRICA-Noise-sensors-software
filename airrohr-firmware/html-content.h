@@ -30,7 +30,6 @@ const char SENSORS_HPM[] PROGMEM = "Honeywell PM";
 const char SENSORS_SPS30[] PROGMEM = "Sensirion SPS30";
 const char SENSORS_DHT22[] PROGMEM = "DHT22";
 const char SENSORS_HTU21D[] PROGMEM = "HTU21D";
-const char SENSORS_BMX280[] PROGMEM = "BMP/E280";
 const char SENSORS_DNMS[] PROGMEM = "DNMS";
 const char SENSORS_RTC[] PROGMEM = "RTC";
 
