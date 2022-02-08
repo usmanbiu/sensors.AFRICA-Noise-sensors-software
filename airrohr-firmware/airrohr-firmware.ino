@@ -110,7 +110,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <StreamString.h>
 #include <DallasTemperature.h>
 #include <TinyGPS++.h>
-#include "./bmx280_i2c.h"
 #include "./dnms_i2c.h"
 #include "./SPH0645.h"
 
@@ -424,7 +423,6 @@ unsigned long last_update_attempt;
 int last_update_returncode;
 int last_sendData_returncode;
 
-float last_value_BME280_H = -1.0;
 float last_value_DHT_T = -128.0;
 float last_value_DHT_H = -1.0;
 float last_value_HTU21D_T = -128.0;
@@ -933,10 +931,6 @@ static void readConfig(bool oldconfig = false) {
 		}
 		if (boolFromJSON(json, F("pm24_read")) || boolFromJSON(json, F("pms32_read"))) {
 			cfg::pms_read = true;
-			rewriteConfig = true;
-		}
-		if (boolFromJSON(json, F("bmp280_read")) || boolFromJSON(json, F("bme280_read"))) {
-			cfg::bmx280_read = true;
 			rewriteConfig = true;
 		}
 	} else {
