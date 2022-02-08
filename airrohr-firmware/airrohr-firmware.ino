@@ -110,8 +110,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <StreamString.h>
 #include <DallasTemperature.h>
 #include <TinyGPS++.h>
-#include "./bmx280_i2c.h"
-#include "./sps30_i2c.h"
 #include "./dnms_i2c.h"
 #include "./SPH0645.h"
 
@@ -216,7 +214,6 @@ namespace cfg {
 	bool ppd_read = PPD_READ;
 	bool sds_read = SDS_READ;
 	bool pms_read = PMS_READ;
-	bool sps30_read = SPS30_READ;
 	bool dnms_read = DNMS_READ;
 	char dnms_correction[LEN_DNMS_CORRECTION] = DNMS_CORRECTION;
 	bool gps_read = GPS_READ;
@@ -424,7 +421,6 @@ unsigned long last_update_attempt;
 int last_update_returncode;
 int last_sendData_returncode;
 
-float last_value_BME280_H = -1.0;
 float last_value_DHT_T = -128.0;
 float last_value_DHT_H = -1.0;
 float last_value_HTU21D_T = -128.0;
@@ -450,36 +446,9 @@ int pms_pm25_max = 0;
 int pms_pm25_min = 20000;
 bool readPMSFromAtmega = true;
 
-float last_value_SPS30_P0 = -1.0;
-float last_value_SPS30_P1 = -1.0;
-float last_value_SPS30_P2 = -1.0;
-float last_value_SPS30_P4 = -1.0;
-float last_value_SPS30_N05 = -1.0;
-float last_value_SPS30_N1 = -1.0;
-float last_value_SPS30_N25 = -1.0;
-float last_value_SPS30_N4 = -1.0;
-float last_value_SPS30_N10 = -1.0;
-float last_value_SPS30_TS = -1.0;
-float value_SPS30_P0 = 0.0;
-float value_SPS30_P1 = 0.0;
-float value_SPS30_P2 = 0.0;
-float value_SPS30_P4 = 0.0;
-float value_SPS30_N05 = 0.0;
-float value_SPS30_N1 = 0.0;
-float value_SPS30_N25 = 0.0;
-float value_SPS30_N4 = 0.0;
-float value_SPS30_N10 = 0.0;
-float value_SPS30_TS = 0.0;
-
 //Variable to store SPH0645 Mic value
 float value_SPH0645 = 0.0;
 
-
-uint16_t SPS30_measurement_count = 0;
-unsigned long SPS30_read_counter = 0;
-unsigned long SPS30_read_error_counter = 0;
-unsigned long SPS30_read_timer = 0;
-bool sps30_init_failed = false;
 
 float last_value_PPD_P1 = -1.0;
 float last_value_PPD_P2 = -1.0;
@@ -919,10 +888,6 @@ static void readConfig(bool oldconfig = false) {
 		}
 		if (boolFromJSON(json, F("pm24_read")) || boolFromJSON(json, F("pms32_read"))) {
 			cfg::pms_read = true;
-			rewriteConfig = true;
-		}
-		if (boolFromJSON(json, F("bmp280_read")) || boolFromJSON(json, F("bme280_read"))) {
-			cfg::bmx280_read = true;
 			rewriteConfig = true;
 		}
 	} else {
@@ -1450,8 +1415,6 @@ static void webserver_config_send_body_get(String& page_content) {
 	page_content += FPSTR(INTL_SENSORS);
 	page_content += FPSTR(WEB_B_BR);
 	add_form_checkbox_sensor(Config_sds_read, FPSTR(INTL_SDS011));
-	add_form_checkbox_sensor(Config_sps30_read, FPSTR(INTL_SPS30));
-
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
 	page_content = emptyString;
@@ -1587,7 +1550,6 @@ static void webserver_config_send_body_post(String& page_content) {
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_HTU21D), htu21d_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SDS011), sds_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PMSx003), pms_read);
-	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SPS30), sps30_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PPD42NS), ppd_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_DNMS), dnms_read);
 	add_line_value(page_content, FPSTR(INTL_DNMS_CORRECTION), String(dnms_correction));
@@ -1807,20 +1769,6 @@ static void webserver_values() {
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM25), check_display_value(last_value_PMS_P2, -1, 1, 0), unit_PM);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM10), check_display_value(last_value_PMS_P1, -1, 1, 0), unit_PM);
 		}
-		if (cfg::sps30_read) {
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_PM1), check_display_value(last_value_SPS30_P0, -1, 1, 0), unit_PM);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_PM25), check_display_value(last_value_SPS30_P2, -1, 1, 0), unit_PM);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_PM4), check_display_value(last_value_SPS30_P4, -1, 1, 0), unit_PM);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_PM10), check_display_value(last_value_SPS30_P1, -1, 1, 0), unit_PM);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_NC0k5), check_display_value(last_value_SPS30_N05, -1, 0, 0), unit_NC);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_NC1k0), check_display_value(last_value_SPS30_N1, -1, 0, 0), unit_NC);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_NC2k5), check_display_value(last_value_SPS30_N25, -1, 0, 0), unit_NC);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_NC4k0), check_display_value(last_value_SPS30_N4, -1, 0, 0), unit_NC);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_NC10), check_display_value(last_value_SPS30_N10, -1, 0, 0), unit_NC);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), FPSTR(WEB_TPS), check_display_value(last_value_SPS30_TS, -1, 1, 0), unit_TS);
-		}
-
 		if (cfg::dht_read) {
 			page_content += FPSTR(EMPTY_ROW);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_DHT22), FPSTR(INTL_TEMPERATURE), check_display_value(last_value_DHT_T, -128, 1, 0), unit_T);
@@ -1970,9 +1918,6 @@ static void webserver_status() {
 	}
 	if (cfg::sds_read) {
 		add_table_row_from_value(page_content, FPSTR(SENSORS_SDS011), String(SDS_error_count));
-	}
-	if (cfg::sps30_read) {
-		add_table_row_from_value(page_content, FPSTR(SENSORS_SPS30), String(SPS30_read_error_counter));
 	}
 	page_content += FPSTR(EMPTY_ROW);
 	page_content += F("<tr><td colspan='2'><b>" "LOG COUNT" "</b></td></tr>");
@@ -2337,7 +2282,6 @@ static void wifiConfig() {
 	debug_outln_info_bool(F("PPD: "), cfg::ppd_read);
 	debug_outln_info_bool(F("SDS: "), cfg::sds_read);
 	debug_outln_info_bool(F("PMS: "), cfg::pms_read);
-	debug_outln_info_bool(F("SPS30: "), cfg::sps30_read);
 	debug_outln_info_bool(F("DHT: "), cfg::dht_read);
 	debug_outln_info_bool(F("HTU21D: "), cfg::htu21d_read);
 	debug_outln_info_bool(F("DNMS: "), cfg::dnms_read);
@@ -3220,55 +3164,6 @@ static void fetchSensorPPD(String& s) {
 }
 
 /*****************************************************************
-   read SPS30 PM sensor values
- *****************************************************************/
-static void fetchSensorSPS30(String& s) {
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_SPS30));
-
-	last_value_SPS30_P0 = value_SPS30_P0 / SPS30_measurement_count;
-	last_value_SPS30_P2 = value_SPS30_P2 / SPS30_measurement_count;
-	last_value_SPS30_P4 = value_SPS30_P4 / SPS30_measurement_count;
-	last_value_SPS30_P1 = value_SPS30_P1 / SPS30_measurement_count;
-	last_value_SPS30_N05 = value_SPS30_N05 / SPS30_measurement_count;
-	last_value_SPS30_N1 = value_SPS30_N1 / SPS30_measurement_count;
-	last_value_SPS30_N25 = value_SPS30_N25 / SPS30_measurement_count;
-	last_value_SPS30_N4 = value_SPS30_N4 / SPS30_measurement_count;
-	last_value_SPS30_N10 = value_SPS30_N10 / SPS30_measurement_count;
-	last_value_SPS30_TS = value_SPS30_TS / SPS30_measurement_count;
-
-	add_Value2Json(s, F("SPS30_P0"), F("PM1.0: "), last_value_SPS30_P0);
-	add_Value2Json(s, F("SPS30_P2"), F("PM2.5: "), last_value_SPS30_P2);
-	add_Value2Json(s, F("SPS30_P4"), F("PM4.0: "), last_value_SPS30_P4);
-	add_Value2Json(s, F("SPS30_P1"), F("PM 10: "), last_value_SPS30_P1);
-	add_Value2Json(s, F("SPS30_N05"), F("NC0.5: "), last_value_SPS30_N05);
-	add_Value2Json(s, F("SPS30_N1"), F("NC1.0: "), last_value_SPS30_N1);
-	add_Value2Json(s, F("SPS30_N25"), F("NC2.5: "), last_value_SPS30_N25);
-	add_Value2Json(s, F("SPS30_N4"), F("NC4.0: "), last_value_SPS30_N4);
-	add_Value2Json(s, F("SPS30_N10"), F("NC10:  "), last_value_SPS30_N10);
-	add_Value2Json(s, F("SPS30_TS"), F("TPS:   "), last_value_SPS30_TS);
-
-	debug_outln_info(F("SPS30 read counter: "), String(SPS30_read_counter));
-	debug_outln_info(F("SPS30 read error counter: "), String(SPS30_read_error_counter));
-
-	SPS30_measurement_count = 0;
-	SPS30_read_counter = 0;
-	SPS30_read_error_counter = 0;
-	value_SPS30_P0 = 0.0;
-	value_SPS30_P2 = 0.0;
-	value_SPS30_P4 = 0.0;
-	value_SPS30_P1 = 0.0;
-	value_SPS30_N05 = 0.0;
-	value_SPS30_N1 = 0.0;
-	value_SPS30_N25 = 0.0;
-	value_SPS30_N4 = 0.0;
-	value_SPS30_N10 = 0.0;
-	value_SPS30_TS = 0.0;
-
-	debug_outln_info(FPSTR(DBG_TXT_SEP));
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_SPS30));
-}
-
-/*****************************************************************
    read DNMS values
  *****************************************************************/
 
@@ -3862,20 +3757,6 @@ static void display_values() {
 		pm25_value = last_value_PMS_P2;
 		pm25_sensor = FPSTR(SENSORS_PMSx003);
 	}
-	if (cfg::sps30_read) {
-		pm10_sensor = FPSTR(SENSORS_SPS30);
-		pm25_sensor = FPSTR(SENSORS_SPS30);
-		pm01_value = last_value_SPS30_P0;
-		pm25_value = last_value_SPS30_P2;
-		pm04_value = last_value_SPS30_P4;
-		pm10_value = last_value_SPS30_P1;
-		nc005_value = last_value_SPS30_N05;
-		nc010_value = last_value_SPS30_N1;
-		nc025_value = last_value_SPS30_N25;
-		nc040_value = last_value_SPS30_N4;
-		nc100_value = last_value_SPS30_N10;
-		tps_value = last_value_SPS30_TS;
-	}
 	if (cfg::sds_read) {
 		pm10_sensor = pm25_sensor = FPSTR(SENSORS_SDS011);
 		pm10_value = last_value_SDS_P1;
@@ -3905,9 +3786,6 @@ static void display_values() {
 	if (cfg::ppd_read || cfg::pms_read || cfg::sds_read) {
 		screens[screen_count++] = 1;
 	}
-	if (cfg::sps30_read) {
-		screens[screen_count++] = 2;
-	}
 	if (cfg::gps_read) {
 		screens[screen_count++] = 4;
 	}
@@ -3934,12 +3812,6 @@ static void display_values() {
 			display_lines[2] = emptyString;
 			break;
 		case 2:
-			display_header = FPSTR(SENSORS_SPS30);
-			display_lines[0] = "PM: " + check_display_value(pm01_value, -1, 1, 4) + " " + check_display_value(pm25_value, -1, 1, 4) + " " + check_display_value(pm04_value, -1, 1, 4) + " " + check_display_value(pm10_value, -1, 1, 4);
-			display_lines[1] = "NC: " + check_display_value(nc005_value, -1, 0, 3) + " " + check_display_value(nc010_value, -1, 0, 3) + " " + check_display_value(nc025_value, -1, 0, 3) + " " + check_display_value(nc040_value, -1, 0, 3) + " " + check_display_value(nc100_value, -1, 0, 3);
-			display_lines[2] = std::move(tmpl(F("TPS: {v} µm"), check_display_value(tps_value, -1, 2, 5)));
-			break;
-		case 3:
 			display_header = t_sensor;
 			if (h_sensor && t_sensor != h_sensor) {
 				display_header += " / " + h_sensor;
@@ -3952,7 +3824,7 @@ static void display_values() {
 			if (p_sensor != "") { display_lines[line_count] = "Pres.: "; display_lines[line_count] += check_display_value(p_value / 100, (-1 / 100.0), 1, 6); display_lines[line_count++] += " hPa"; }
 			while (line_count < 3) { display_lines[line_count++] = emptyString; }
 			break;
-		case 4:
+		case 3:
 			display_header = "NEO6M";
 			display_lines[0] = "Lat: ";
 			display_lines[0] += check_display_value(lat_value, -200.0, 6, 10);
@@ -3961,19 +3833,19 @@ static void display_values() {
 			display_lines[2] = "Alt: ";
 			display_lines[2] += check_display_value(alt_value, -1000.0, 2, 10);
 			break;
-		case 5:
+		case 4:
 			display_header = FPSTR(SENSORS_DNMS);
 			display_lines[0] = std::move(tmpl(F("LAeq: {v} db(A)"), check_display_value(la_eq_value, -1, 1, 6)));
 			display_lines[1] = std::move(tmpl(F("LA_max: {v} db(A)"), check_display_value(la_max_value, -1, 1, 6)));
 			display_lines[2] = std::move(tmpl(F("LA_min: {v} db(A)"), check_display_value(la_min_value, -1, 1, 6)));
 			break;
-		case 6:
+		case 5:
 			display_header = F("Wifi info");
 			display_lines[0] = "IP: "; display_lines[0] += WiFi.localIP().toString();
 			display_lines[1] = "SSID: "; display_lines[1] += WiFi.SSID();
 			display_lines[2] = std::move(tmpl(F("Signal: {v} %"), String(calcWiFiSignalQuality(last_signal_strength))));
 			break;
-		case 7:
+		case 6:
 			display_header = F("Device Info");
 			display_lines[0] = "ID: "; display_lines[0] += esp_chipid;
 			display_lines[1] = "FW: "; display_lines[1] += SOFTWARE_VERSION;
@@ -4121,35 +3993,6 @@ static void init_lcd() {
 }
 
 /*****************************************************************
-   Init SPS30 PM Sensor
- *****************************************************************/
-static void initSPS30() {
-	char serial[SPS_MAX_SERIAL_LEN];
-	debug_out(F("Trying SPS30 sensor on 0x69H "), DEBUG_MIN_INFO);
-	sps30_reset();
-	delay(200);
-	if ( sps30_get_serial(serial) != 0 ) {
-		debug_outln_info(FPSTR(DBG_TXT_NOT_FOUND));
-
-		debug_outln_info(F("Check SPS30 wiring"));
-		sps30_init_failed = true;
-		return;
-	}
-	debug_outln_info(F(" ... found, Serial-No.: "), String(serial));
-	if (sps30_set_fan_auto_cleaning_interval(SPS30_AUTO_CLEANING_INTERVAL) != 0) {
-		debug_outln_error(F("setting of Auto Cleaning Intervall SPS30 failed!"));
-		sps30_init_failed = true;
-		return;
-	}
-	delay(100);
-	if (sps30_start_measurement() != 0) {
-		debug_outln_error(F("SPS30 error starting measurement"));
-		sps30_init_failed = true;
-		return;
-	}
-}
-
-/*****************************************************************
  Init Micro SD card logger
  *****************************************************************/
 static void init_SD()
@@ -4222,12 +4065,6 @@ static void powerOnTestSensors() {
 	{
 		switch_status_LEDs_off(PMS_LED,LOW);	// turn PMS status led off
 	}
-
-	if (cfg::sps30_read) {
-		debug_outln_info(F("Read SPS30..."));
-		initSPS30();
-	}
-
 	if (cfg::dht_read) {
 		dht.begin();										// Start DHT
 		debug_outln_info(F("Read DHT..."));
@@ -4662,38 +4499,6 @@ void loop(void) {
 		last_update_attempt = act_milli;
 	}
 
-	if (cfg::sps30_read && ( !sps30_init_failed)) {
-		if ((msSince(starttime) - SPS30_read_timer) > SPS30_WAITING_AFTER_LAST_READ) {
-			struct sps30_measurement sps30_values;
-			int16_t ret_SPS30;
-
-			SPS30_read_timer = msSince(starttime);
-
-			ret_SPS30 = sps30_read_measurement(&sps30_values);
-			++SPS30_read_counter;
-			if (ret_SPS30 < 0) {
-				debug_outln_info(F("SPS30 error reading measurement"));
-				SPS30_read_error_counter++;
-			} else {
-				if (SPS_IS_ERR_STATE(ret_SPS30)) {
-					debug_outln_info(F("SPS30 measurements may not be accurate"));
-					SPS30_read_error_counter++;
-				}
-				value_SPS30_P0 += sps30_values.mc_1p0;
-				value_SPS30_P2 += sps30_values.mc_2p5;
-				value_SPS30_P4 += sps30_values.mc_4p0;
-				value_SPS30_P1 += sps30_values.mc_10p0;
-				value_SPS30_N05 += sps30_values.nc_0p5;
-				value_SPS30_N1 += sps30_values.nc_1p0;
-				value_SPS30_N25 += sps30_values.nc_2p5;
-				value_SPS30_N4 += sps30_values.nc_4p0;
-				value_SPS30_N10 += sps30_values.nc_10p0;
-				value_SPS30_TS += sps30_values.tps;
-				++SPS30_measurement_count;
-			}
-		}
-	}
-
 	if (cfg::ppd_read) {
 		fetchSensorPPD(result_PPD);
 	}
@@ -4808,18 +4613,6 @@ void loop(void) {
 				sum_send_time += sendCFA(result_PMS, PMS_API_PIN, FPSTR(SENSORS_PMSx003), "PMS_");
 				sum_send_time += sendSensorCommunity(result_PMS, PMS_API_PIN, FPSTR(SENSORS_PMSx003), "PMS_");
 			}
-		}
-		if (cfg::sps30_read && (! sps30_init_failed)) {
-			fetchSensorSPS30(result);
-			data += result;
-			if(cfg::send2sd) {
-				sum_send_time += sendSD(result, SPS30_API_PIN, FPSTR(SENSORS_SPS30), "SPS30_");
-			}
-      		if(cfg::wifi_enabled) {
-				sum_send_time += sendCFA(result, SPS30_API_PIN, FPSTR(SENSORS_SPS30), "SPS30_");
-				sum_send_time += sendSensorCommunity(result, SPS30_API_PIN, FPSTR(SENSORS_SPS30), "SPS30_");
-			}
-			result = emptyString;
 		}
 		if (cfg::dht_read) {
 			// getting temperature and humidity (optional)
