@@ -265,10 +265,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define PMS_READ 1
 #define PMS_API_PIN 1
 
-// Honeywell PM sensor
-#define HPM_READ 0
-#define HPM_API_PIN 1
-
 // Sensirion SPS30, the more expensive version of the particle sensor
 #define SPS30_READ 0
 #define SPS30_API_PIN 1

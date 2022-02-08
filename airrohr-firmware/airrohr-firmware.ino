@@ -216,7 +216,6 @@ namespace cfg {
 	bool ppd_read = PPD_READ;
 	bool sds_read = SDS_READ;
 	bool pms_read = PMS_READ;
-	bool hpm_read = HPM_READ;
 	bool sps30_read = SPS30_READ;
 	bool dnms_read = DNMS_READ;
 	char dnms_correction[LEN_DNMS_CORRECTION] = DNMS_CORRECTION;
@@ -419,7 +418,6 @@ unsigned long max_micro = 0;
 
 bool is_SDS_running = true;
 bool is_PMS_running = true;
-bool is_HPM_running = true;
 
 unsigned long sending_time = 0;
 unsigned long last_update_attempt;
@@ -451,14 +449,6 @@ int pms_pm10_min = 20000;
 int pms_pm25_max = 0;
 int pms_pm25_min = 20000;
 bool readPMSFromAtmega = true;
-
-int hpm_pm10_sum = 0;
-int hpm_pm25_sum = 0;
-int hpm_val_count = 0;
-int hpm_pm10_max = 0;
-int hpm_pm10_min = 20000;
-int hpm_pm25_max = 0;
-int hpm_pm25_min = 20000;
 
 float last_value_SPS30_P0 = -1.0;
 float last_value_SPS30_P1 = -1.0;
@@ -498,8 +488,6 @@ float last_value_SDS_P2 = -1.0;
 float last_value_PMS_P0 = -1.0;
 float last_value_PMS_P1 = -1.0;
 float last_value_PMS_P2 = -1.0;
-float last_value_HPM_P1 = -1.0;
-float last_value_HPM_P2 = -1.0;
 double last_value_GPS_lat = -200.0;
 double last_value_GPS_lon = -200.0;
 double last_value_GPS_alt = -1000.0;
@@ -743,37 +731,6 @@ static bool PMS_cmd(PmSensorCmd cmd) {
 	};
 	static constexpr uint8_t continuous_mode_cmd[] PROGMEM = {
 		0x42, 0x4D, 0xE1, 0x00, 0x01, 0x01, 0x71
-	};
-	constexpr uint8_t cmd_len = array_num_elements(start_cmd);
-
-	uint8_t buf[cmd_len];
-	switch (cmd) {
-	case PmSensorCmd::Start:
-		memcpy_P(buf, start_cmd, cmd_len);
-		break;
-	case PmSensorCmd::Stop:
-		memcpy_P(buf, stop_cmd, cmd_len);
-		break;
-	case PmSensorCmd::ContinuousMode:
-		memcpy_P(buf, continuous_mode_cmd, cmd_len);
-		break;
-	}
-	serialSDS.write(buf, cmd_len);
-	return cmd != PmSensorCmd::Stop;
-}
-
-/*****************************************************************
- * send Honeywell PMS sensor command start, stop, cont. mode     *
- *****************************************************************/
-static bool HPM_cmd(PmSensorCmd cmd) {
-	static constexpr uint8_t start_cmd[] PROGMEM = {
-		0x68, 0x01, 0x01, 0x96
-	};
-	static constexpr uint8_t stop_cmd[] PROGMEM = {
-		0x68, 0x01, 0x02, 0x95
-	};
-	static constexpr uint8_t continuous_mode_cmd[] PROGMEM = {
-		0x68, 0x01, 0x40, 0x57
 	};
 	constexpr uint8_t cmd_len = array_num_elements(start_cmd);
 
@@ -1493,7 +1450,6 @@ static void webserver_config_send_body_get(String& page_content) {
 	page_content += FPSTR(INTL_SENSORS);
 	page_content += FPSTR(WEB_B_BR);
 	add_form_checkbox_sensor(Config_sds_read, FPSTR(INTL_SDS011));
-	add_form_checkbox_sensor(Config_hpm_read, FPSTR(INTL_HPM));
 	add_form_checkbox_sensor(Config_sps30_read, FPSTR(INTL_SPS30));
 
 	// Paginate page after ~ 1500 Bytes
@@ -1631,7 +1587,6 @@ static void webserver_config_send_body_post(String& page_content) {
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_HTU21D), htu21d_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SDS011), sds_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PMSx003), pms_read);
-	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_HPM), hpm_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SPS30), sps30_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PPD42NS), ppd_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_DNMS), dnms_read);
@@ -1851,11 +1806,6 @@ static void webserver_values() {
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM1), check_display_value(last_value_PMS_P0, -1, 1, 0), unit_PM);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM25), check_display_value(last_value_PMS_P2, -1, 1, 0), unit_PM);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM10), check_display_value(last_value_PMS_P1, -1, 1, 0), unit_PM);
-		}
-		if (cfg::hpm_read) {
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_HPM), FPSTR(WEB_PM25), check_display_value(last_value_HPM_P2, -1, 1, 0), unit_PM);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_HPM), FPSTR(WEB_PM10), check_display_value(last_value_HPM_P1, -1, 1, 0), unit_PM);
 		}
 		if (cfg::sps30_read) {
 			page_content += FPSTR(EMPTY_ROW);
@@ -2387,7 +2337,6 @@ static void wifiConfig() {
 	debug_outln_info_bool(F("PPD: "), cfg::ppd_read);
 	debug_outln_info_bool(F("SDS: "), cfg::sds_read);
 	debug_outln_info_bool(F("PMS: "), cfg::pms_read);
-	debug_outln_info_bool(F("HPM: "), cfg::hpm_read);
 	debug_outln_info_bool(F("SPS30: "), cfg::sps30_read);
 	debug_outln_info_bool(F("DHT: "), cfg::dht_read);
 	debug_outln_info_bool(F("HTU21D: "), cfg::htu21d_read);
@@ -3204,138 +3153,6 @@ String fetchSensorPMSFromAtmega(){
 }
 
 /*****************************************************************
- * read Honeywell PM sensor sensor values                        *
- *****************************************************************/
-static void fetchSensorHPM(String& s) {
-	char buffer;
-	int value;
-	int len = 0;
-	int pm10_serial = 0;
-	int pm25_serial = 0;
-	int checksum_is = 0;
-	int checksum_should = 0;
-	bool checksum_ok = false;
-
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_HPM));
-	if (msSince(starttime) < (cfg::sending_intervall_ms - (WARMUPTIME_SDS_MS + READINGTIME_SDS_MS))) {
-		if (is_HPM_running) {
-			is_HPM_running = HPM_cmd(PmSensorCmd::Stop);
-		}
-	} else {
-		if (! is_HPM_running) {
-			is_HPM_running = HPM_cmd(PmSensorCmd::Start);
-		}
-
-		while (serialSDS.available() > 0) {
-			buffer = serialSDS.read();
-			debug_outln(String(len) + " - " + String(buffer, DEC) + " - " + String(buffer, HEX) + " - " + int(buffer) + " .", DEBUG_MAX_INFO);
-//			"aa" = 170, "ab" = 171, "c0" = 192
-			value = int(buffer);
-			switch (len) {
-			case 0:
-				if (value != 66) {
-					len = -1;
-				};
-				break;
-			case 1:
-				if (value != 77) {
-					len = -1;
-				};
-				break;
-			case 2:
-				checksum_is = value;
-				break;
-			case 6:
-				pm25_serial += ( value << 8);
-				break;
-			case 7:
-				pm25_serial += value;
-				break;
-			case 8:
-				pm10_serial = ( value << 8);
-				break;
-			case 9:
-				pm10_serial += value;
-				break;
-			case 30:
-				checksum_should = ( value << 8 );
-				break;
-			case 31:
-				checksum_should += value;
-				break;
-			}
-			if (len > 2 && len < 30) { checksum_is += value; }
-			len++;
-			if (len == 32) {
-				debug_outln_verbose(FPSTR(DBG_TXT_CHECKSUM_IS), String(checksum_is + 143));
-				debug_outln_verbose(FPSTR(DBG_TXT_CHECKSUM_SHOULD), String(checksum_should));
-				if (checksum_should == (checksum_is + 143)) {
-					checksum_ok = true;
-				} else {
-					len = 0;
-				};
-				if (checksum_ok && (long(msSince(starttime)) > (long(cfg::sending_intervall_ms) - long(READINGTIME_SDS_MS)))) {
-					if ((! isnan(pm10_serial)) && (! isnan(pm25_serial))) {
-						hpm_pm10_sum += pm10_serial;
-						hpm_pm25_sum += pm25_serial;
-						if (hpm_pm10_min > pm10_serial) {
-							hpm_pm10_min = pm10_serial;
-						}
-						if (hpm_pm10_max < pm10_serial) {
-							hpm_pm10_max = pm10_serial;
-						}
-						if (hpm_pm25_min > pm25_serial) {
-							hpm_pm25_min = pm25_serial;
-						}
-						if (hpm_pm25_max < pm25_serial) {
-							hpm_pm25_max = pm25_serial;
-						}
-						debug_outln_verbose(F("PM2.5 (sec.): "), String(pm25_serial));
-						debug_outln_verbose(F("PM10 (sec.) : "), String(pm10_serial));
-						hpm_val_count++;
-					}
-					len = 0;
-					checksum_ok = false;
-					pm10_serial = 0;
-					pm25_serial = 0;
-					checksum_is = 0;
-				}
-			}
-			yield();
-		}
-
-	}
-	if (send_now) {
-		last_value_HPM_P1 = -1.0f;
-		last_value_HPM_P2 = -1.0f;
-		if (hpm_val_count > 2) {
-			hpm_pm10_sum = hpm_pm10_sum - hpm_pm10_min - hpm_pm10_max;
-			hpm_pm25_sum = hpm_pm25_sum - hpm_pm25_min - hpm_pm25_max;
-			hpm_val_count = hpm_val_count - 2;
-		}
-		if (hpm_val_count > 0) {
-			last_value_HPM_P1 = float(hpm_pm10_sum) / float(hpm_val_count);
-			last_value_HPM_P2 = float(hpm_pm25_sum) / float(hpm_val_count);
-			add_Value2Json(s, F("HPM_P1"), F("PM2.5: "), last_value_HPM_P1);
-			add_Value2Json(s, F("HPM_P2"), F("PM10:  "), last_value_HPM_P2);
-			debug_outln_info(FPSTR(DBG_TXT_SEP));
-		}
-		hpm_pm10_sum = 0;
-		hpm_pm25_sum = 0;
-		hpm_val_count = 0;
-		hpm_pm10_max = 0;
-		hpm_pm10_min = 20000;
-		hpm_pm25_max = 0;
-		hpm_pm25_min = 20000;
-		if (cfg::sending_intervall_ms > (WARMUPTIME_SDS_MS + READINGTIME_SDS_MS)) {
-			is_HPM_running = HPM_cmd(PmSensorCmd::Stop);
-		}
-	}
-
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_HPM));
-}
-
-/*****************************************************************
  * read PPD42NS sensor values                                    *
  *****************************************************************/
 static void fetchSensorPPD(String& s) {
@@ -4045,12 +3862,6 @@ static void display_values() {
 		pm25_value = last_value_PMS_P2;
 		pm25_sensor = FPSTR(SENSORS_PMSx003);
 	}
-	if (cfg::hpm_read) {
-		pm10_value = last_value_HPM_P1;
-		pm10_sensor = FPSTR(SENSORS_HPM);
-		pm25_value = last_value_HPM_P2;
-		pm25_sensor = FPSTR(SENSORS_HPM);
-	}
 	if (cfg::sps30_read) {
 		pm10_sensor = FPSTR(SENSORS_SPS30);
 		pm25_sensor = FPSTR(SENSORS_SPS30);
@@ -4091,7 +3902,7 @@ static void display_values() {
 		lon_value = last_value_GPS_lon;
 		alt_value = last_value_GPS_alt;
 	}
-	if (cfg::ppd_read || cfg::pms_read || cfg::hpm_read || cfg::sds_read) {
+	if (cfg::ppd_read || cfg::pms_read || cfg::sds_read) {
 		screens[screen_count++] = 1;
 	}
 	if (cfg::sps30_read) {
@@ -4410,16 +4221,6 @@ static void powerOnTestSensors() {
 	else
 	{
 		switch_status_LEDs_off(PMS_LED,LOW);	// turn PMS status led off
-	}
-
-	if (cfg::hpm_read) {
-		debug_outln_info(F("Read HPM..."));
-		HPM_cmd(PmSensorCmd::Start);
-		delay(100);
-		HPM_cmd(PmSensorCmd::ContinuousMode);
-		delay(100);
-		debug_outln_info(F("Stopping HPM..."));
-		is_HPM_running = HPM_cmd(PmSensorCmd::Stop);
 	}
 
 	if (cfg::sps30_read) {
@@ -4818,7 +4619,7 @@ void setup(void) {
  * And action                                                    *
  *****************************************************************/
 void loop(void) {
-	String result_PPD, result_SDS, result_PMS, result_HPM;
+	String result_PPD, result_SDS, result_PMS;
 	String result_GPS, result_DNMS, result_SPH0645;
 
 	unsigned sum_send_time = 0;
@@ -4922,10 +4723,6 @@ void loop(void) {
 			}
 			
 		}
-
-		if (cfg::hpm_read) {
-			fetchSensorHPM(result_HPM);
-		}
 	}
 
 	if (cfg::gps_read && !gps_init_failed) {
@@ -5010,16 +4807,6 @@ void loop(void) {
       		if(cfg::wifi_enabled) {
 				sum_send_time += sendCFA(result_PMS, PMS_API_PIN, FPSTR(SENSORS_PMSx003), "PMS_");
 				sum_send_time += sendSensorCommunity(result_PMS, PMS_API_PIN, FPSTR(SENSORS_PMSx003), "PMS_");
-			}
-		}
-		if (cfg::hpm_read) {
-			data += result_HPM;
-			if(cfg::send2sd) {
-				sum_send_time += sendSD(result_HPM, HPM_API_PIN, FPSTR(SENSORS_HPM), "HPM_");
-			}
-      		if(cfg::wifi_enabled) {
-				sum_send_time += sendCFA(result_HPM, HPM_API_PIN, FPSTR(SENSORS_HPM), "HPM_");
-				sum_send_time += sendSensorCommunity(result_HPM, HPM_API_PIN, FPSTR(SENSORS_HPM), "HPM_");
 			}
 		}
 		if (cfg::sps30_read && (! sps30_init_failed)) {
