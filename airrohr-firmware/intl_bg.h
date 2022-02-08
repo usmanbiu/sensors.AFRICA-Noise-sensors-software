@@ -22,7 +22,6 @@ const char INTL_SENSORS[] PROGMEM = "Сензори";
 const char INTL_MORE_SENSORS[] PROGMEM = "More Сензори";
 const char INTL_SDS011[] PROGMEM = "SDS011 ({pm})";
 const char INTL_PMS[] PROGMEM = "Plantower PMS(1,3,5,6,7)003 ({pm})";
-const char INTL_HPM[] PROGMEM = "Honeywell сензора за прахови частици";
 const char INTL_PPD42NS[] PROGMEM = "PPD42NS ({pm})";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DHT22[] PROGMEM = "DHT22 ({t}, {h})";

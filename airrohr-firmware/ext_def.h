@@ -265,10 +265,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define PMS_READ 1
 #define PMS_API_PIN 1
 
-// Honeywell PM sensor
-#define HPM_READ 0
-#define HPM_API_PIN 1
-
 // DNMS Noise Measurement
 #define DNMS_READ 0
 #define DNMS_API_PIN 15
