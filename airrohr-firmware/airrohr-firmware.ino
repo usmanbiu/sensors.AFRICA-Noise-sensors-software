@@ -101,7 +101,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <LiquidCrystal_I2C.h>
 #include <ArduinoJson.h>
 #include <DNSServer.h>
-#include "./DHT.h"
 #include <RTClib.h>
 #include <SD.h>
 #include <SPI.h>
@@ -208,7 +207,6 @@ namespace cfg {
 
 	// (in)active sensors
 	bool sph0645_read = SPHO645_READ;
-	bool dht_read = DHT_READ;
 	bool htu21d_read = HTU21D_READ;
 	bool ppd_read = PPD_READ;
 	bool sds_read = SDS_READ;
@@ -358,11 +356,6 @@ SoftwareSerial* serialGPS;
 SoftwareSerial atmega328p;
 
 /*****************************************************************
- * DHT declaration                                               *
- *****************************************************************/
-DHT dht(ONEWIRE_PIN, DHT_TYPE);
-
-/*****************************************************************
  * HTU21D declaration                                            *
  *****************************************************************/
 Adafruit_HTU21DF htu21d;
@@ -415,8 +408,6 @@ unsigned long last_update_attempt;
 int last_update_returncode;
 int last_sendData_returncode;
 
-float last_value_DHT_T = -128.0;
-float last_value_DHT_H = -1.0;
 float last_value_HTU21D_T = -128.0;
 float last_value_HTU21D_H = -1.0;
 
@@ -461,8 +452,6 @@ String timestamp;
 String last_data_string;
 int last_signal_strength;
 bool readGPSFromAtmega = true;
-
-bool readDHTFromAtmega = true;
 
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
@@ -1414,7 +1403,6 @@ static void webserver_config_send_body_get(String& page_content) {
 	page_content = emptyString;
 
 	add_form_checkbox_sensor(Config_sph0645_read, FPSTR(INTL_SPH0645));
-	add_form_checkbox_sensor(Config_dht_read, FPSTR(INTL_DHT22));
 	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
   
 	// Paginate page after ~ 1500 Bytes
@@ -1540,7 +1528,6 @@ static void webserver_config_send_body_post(String& page_content) {
 	add_line_value_bool(page_content, FPSTR(INTL_SEND_TO), F("Sensor.Community"), send2dusti);
 	add_line_value_bool(page_content, FPSTR(INTL_SEND_TO), F("Madavi"), send2madavi);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SPH0645), sph0645_read);
-	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_DHT22), dht_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_HTU21D), htu21d_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SDS011), sds_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PMSx003), pms_read);
@@ -1762,11 +1749,6 @@ static void webserver_values() {
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM1), check_display_value(last_value_PMS_P0, -1, 1, 0), unit_PM);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM25), check_display_value(last_value_PMS_P2, -1, 1, 0), unit_PM);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM10), check_display_value(last_value_PMS_P1, -1, 1, 0), unit_PM);
-		}
-		if (cfg::dht_read) {
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_DHT22), FPSTR(INTL_TEMPERATURE), check_display_value(last_value_DHT_T, -128, 1, 0), unit_T);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_DHT22), FPSTR(INTL_HUMIDITY), check_display_value(last_value_DHT_H, -1, 1, 0), unit_H);
 		}
 		if (cfg::htu21d_read) {
 			page_content += FPSTR(EMPTY_ROW);
@@ -2276,7 +2258,6 @@ static void wifiConfig() {
 	debug_outln_info_bool(F("PPD: "), cfg::ppd_read);
 	debug_outln_info_bool(F("SDS: "), cfg::sds_read);
 	debug_outln_info_bool(F("PMS: "), cfg::pms_read);
-	debug_outln_info_bool(F("DHT: "), cfg::dht_read);
 	debug_outln_info_bool(F("HTU21D: "), cfg::htu21d_read);
 	debug_outln_info_bool(F("DNMS: "), cfg::dnms_read);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
@@ -2634,99 +2615,6 @@ static void send_csv(const String& data) {
 	} else {
 		debug_outln_error(FPSTR(DBG_TXT_DATA_READ_FAILED));
 	}
-}
-
-/*****************************************************************
- * read DHT22 sensor values                                      *
- *****************************************************************/
-static void fetchSensorDHT(String& s) {
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_DHT22));
-
-	// Check if valid number if non NaN (not a number) will be send.
-	last_value_DHT_T = -128;
-	last_value_DHT_H = -1;
-
-	int count = 0;
-	const int MAX_ATTEMPTS = 5;
-	while ((count++ < MAX_ATTEMPTS)) {
-		auto t = dht.readTemperature();
-		auto h = dht.readHumidity();
-		if (isnan(t) || isnan(h)) {
-			delay(100);
-			t = dht.readTemperature(false);
-			h = dht.readHumidity();
-		}
-		if (isnan(t) || isnan(h)) {
-			debug_outln_error(F("DHT11/DHT22 read failed"));
-		} else {
-			last_value_DHT_T = t;
-			last_value_DHT_H = h;
-			add_Value2Json(s, F("temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_DHT_T);
-			add_Value2Json(s, F("humidity"), FPSTR(DBG_TXT_HUMIDITY), last_value_DHT_H);
-			break;
-		}
-	}
-	debug_outln_info(FPSTR(DBG_TXT_SEP));
-
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_DHT22));
-}
-
-
-/*****************************************************************
- * parse DHT22 sensor values for DEBUG				              *
- *****************************************************************/
-void parseDHTPayloadForDebug(String &dht_data){
-	int start_DHT_T = dht_data.indexOf('{');
-	int end_DHT_T = dht_data.indexOf('}',start_DHT_T);
-	String DHT_T_value = dht_data.substring(start_DHT_T,end_DHT_T);
-	
-	DynamicJsonDocument DHT_T_doc(1024);
-	deserializeJson(DHT_T_doc,DHT_T_value);
-  	JsonObject DHT_T_obj = DHT_T_doc.as<JsonObject>();
-	String T_value = DHT_T_obj["value"];
-
-	int start_DHT_H = dht_data.indexOf('{',end_DHT_T);
-	int end_DHT_H = dht_data.indexOf('}',start_DHT_H);
-	String DHT_H_value = dht_data.substring(start_DHT_H,end_DHT_H);
-	
-	DynamicJsonDocument DHT_H_doc(1024);
-	deserializeJson(DHT_H_doc,DHT_H_value);
-  	JsonObject DHT_H_obj = DHT_H_doc.as<JsonObject>();
-	String H_value = DHT_H_obj["value"];
-
-	last_value_DHT_T = T_value.toFloat();
-	last_value_DHT_H = H_value.toFloat();
-
-	debug_outln_info(FPSTR(DBG_TXT_TEMPERATURE),last_value_DHT_T);
-	debug_outln_info(FPSTR(DBG_TXT_HUMIDITY), last_value_DHT_H);
-
-}
-
-/*****************************************************************
- * read DHT22 sensor values from ATMEGA328P                      *
- *****************************************************************/
-String fetchSensorDHTFromAtmega(){
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_DHT22));
-	RESERVE_STRING(s,SMALL_STR);
-
-	//request DHT values from atmega328p
-	atmega328p.println("fetchSensorDHT");
-	delay(3000);
-	while(atmega328p.available() > 0){
-		String dht_data = atmega328p.readString();
-		if(dht_data.indexOf("DHT")){
-			int last_character = dht_data.lastIndexOf(",");
-			s = dht_data.substring(0,(last_character+1));
-			parseDHTPayloadForDebug(s);
-			//Serial.println(s);
-		}
-	}
-
-	obtain_sendTime();
-
-	debug_outln_info(FPSTR(DBG_TXT_SEP));
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_DHT22));
-	return s;
 }
 
 /*****************************************************************
@@ -3706,11 +3594,6 @@ static void display_values() {
 		pm10_value = last_value_SDS_P1;
 		pm25_value = last_value_SDS_P2;
 	}
-	if (cfg::dht_read) {
-		t_sensor = h_sensor = FPSTR(SENSORS_DHT22);
-		t_value = last_value_DHT_T;
-		h_value = last_value_DHT_H;
-	}
 	if (cfg::htu21d_read) {
 		h_sensor = t_sensor = FPSTR(SENSORS_HTU21D);
 		t_value = last_value_HTU21D_T;
@@ -4004,11 +3887,7 @@ static void powerOnTestSensors() {
 		debug_outln_info(F("Stopping PMS..."));
 		is_PMS_running = PMS_cmd(PmSensorCmd::Stop);
 	}
-	if (cfg::dht_read) {
-		dht.begin();										// Start DHT
-		debug_outln_info(F("Read DHT..."));
-	}
-
+  
 	if (cfg::rtc_read) {
 		rtc.begin();
 		debug_outln_info(F("Read Time from RTC..."));
@@ -4151,12 +4030,6 @@ void sendRetreivedDataToCFA(String read_data){
 		String PMSx003_payload = parseRetreivedData(read_data);
 		if(!PMSx003_payload.isEmpty()){
 			sendCFAFromLoggingFile(PMSx003_payload, PMS_API_PIN, FPSTR(SENSORS_PMSx003), "PMS_");
-		}
-	}
-	if(read_data.indexOf("DHT22") >= 0){
-		String DHT_payload = parseRetreivedData(read_data);
-		if(!DHT_payload.isEmpty()){
-			sendCFAFromLoggingFile(DHT_payload, DHT_API_PIN, FPSTR(SENSORS_DHT22), "DHT_");
 		}
 	}
 	if(read_data.indexOf("GPS") >= 0){
@@ -4495,24 +4368,6 @@ void loop(void) {
 				sum_send_time += sendCFA(result_PMS, PMS_API_PIN, FPSTR(SENSORS_PMSx003), "PMS_");
 				sum_send_time += sendSensorCommunity(result_PMS, PMS_API_PIN, FPSTR(SENSORS_PMSx003), "PMS_");
 			}
-		}
-		if (cfg::dht_read) {
-			// getting temperature and humidity (optional)
-			if(readDHTFromAtmega){
-				result = fetchSensorDHTFromAtmega();
-			}
-			else{
-				fetchSensorDHT(result);
-			}
-			data += result;
-			if(cfg::send2sd) {
-				sum_send_time += sendSD(result, DHT_API_PIN, FPSTR(SENSORS_DHT22), "DHT_");
-			}
-      		if(cfg::wifi_enabled) {
-				sum_send_time += sendCFA(result, DHT_API_PIN, FPSTR(SENSORS_DHT22), "DHT_");
-				sum_send_time += sendSensorCommunity(result, DHT_API_PIN, FPSTR(SENSORS_DHT22), "DHT_");
-			}
-			result = emptyString;
 		}
 		if (cfg::htu21d_read && (! htu21d_init_failed)) {
 			// getting temperature and humidity (optional)

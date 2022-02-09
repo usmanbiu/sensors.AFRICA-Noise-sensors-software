@@ -225,11 +225,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define SPHO645_READ  1
 #define SPH0645_API_PIN 15
 
-// DHT22, temperature, humidity
-#define DHT_READ 1
-#define DHT_TYPE DHT22
-#define DHT_API_PIN 7
-
 // RTC
 #define RTC_READ 1
 #define RTC_API_PIN 2
