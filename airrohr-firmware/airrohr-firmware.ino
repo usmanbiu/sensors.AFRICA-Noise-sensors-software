@@ -101,7 +101,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <LiquidCrystal_I2C.h>
 #include <ArduinoJson.h>
 #include <DNSServer.h>
-#include <PCF8575.h>
 #include <RTClib.h>
 #include <SD.h>
 #include <SPI.h>
@@ -355,11 +354,6 @@ SoftwareSerial* serialGPS;
  * ATMEGA328P declaration
  * **************************************************************/
 SoftwareSerial atmega328p;
-
-/*****************************************************************
- * PCF8575 declaration                                           *
- *****************************************************************/
-PCF8575 pcf8575(0x20);
 
 /*****************************************************************
  * HTU21D declaration                                            *
@@ -2473,12 +2467,10 @@ static unsigned long sendSD(const String &data, const int pin, const __FlashStri
 		sensor_readings.print(sensorname);
 		sensor_readings.println("/t");
 
-		toggle_status_LEDs(LOGGER_LED,HIGH,LOW,5000);	// turn logger status led on for 5 seconds
 		debug_outln_info("sensors data logged successfuly");
 	}
 	else
 	{
-		switch_status_LEDs_off(LOGGER_LED,LOW);	// turn logger status led off
 		debug_outln_info("error logging data!!");
 	}
 
@@ -2969,13 +2961,7 @@ String fetchSensorPMSFromAtmega(){
 		}
 
 		obtain_sendTime();
-		toggle_status_LEDs(PMS_LED,HIGH,LOW,5000);	// turn PMS status led on for 5 seconds
 	}
-	else
-	{
-		switch_status_LEDs_off(PMS_LED,LOW);	// turn PMS status led off
-	}
-	
 
 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_PMSx003));
 	return s;
@@ -3276,38 +3262,9 @@ String fetchSensorGPSFromAtmega(){
 	}
 
 	obtain_sendTime();
-	toggle_status_LEDs(GPS_LED,HIGH,LOW,5000);	// turn GPS status LED on for 5 seconds
 
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	return s;
-}
-
-/*****************************************************************
- * INITIALIZE PCF8575										     *
- *****************************************************************/
-void init_PCF8575() {
-
-	pcf8575.begin();
-	pcf8575.pinMode(GPS_LED, OUTPUT);
-	pcf8575.pinMode(LOGGER_LED, OUTPUT);
-	pcf8575.pinMode(RTC_LED, OUTPUT);
-	pcf8575.pinMode(MIC_LED, OUTPUT);
-	pcf8575.pinMode(PMS_LED, OUTPUT);
-	pcf8575.pinMode(DHT_LED, OUTPUT);
-}
-
-void toggle_status_LEDs(uint8_t LED, bool first_state, bool second_state, uint16_t _delay) {
-	pcf8575.digitalWrite(LED,first_state);
-	delay(_delay);
-	pcf8575.digitalWrite(LED,second_state);
-}
-
-void switch_status_LEDs_off(uint8_t LED, bool off_state) {
-	pcf8575.digitalWrite(LED,LOW);
-}
-
-void switch_status_LEDs_on(uint8_t LED, bool on_state) {
-	pcf8575.digitalWrite(LED,on_state);
 }
 
 /****************************************************************
@@ -3360,11 +3317,6 @@ void fetchSensorSPH0645(String& s){
 	  debug_outln_info(F("noise_Leq: "), String(value_SPH0645));
 	  add_Value2Json(s, F("noise_Leq"), String(value_SPH0645));
 	  obtain_sendTime();
-	  toggle_status_LEDs(MIC_LED,HIGH,LOW,5000);	// turn mic status led on for 5 seconds
-  }
-  else
-  {
-	  switch_status_LEDs_off(MIC_LED,LOW);	// turn mic status led off
   }
   
 
@@ -3383,11 +3335,6 @@ void init_RTC()
 		 rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 		// Set explicit time for example 19th May 2020 at 12 noon.
 		// rtc.adjust(DateTime(2020, 5, 19, 12, 00, 00));
-		switch_status_LEDs_off(RTC_LED,HIGH);	// turn rtc status led off
-	}
-	else
-	{
-		toggle_status_LEDs(RTC_LED,HIGH,LOW,5000);	// turn RTC status led on for 5 seconds
 	}
 	
 }
@@ -3939,22 +3886,12 @@ static void powerOnTestSensors() {
 		delay(100);
 		debug_outln_info(F("Stopping PMS..."));
 		is_PMS_running = PMS_cmd(PmSensorCmd::Stop);
-		toggle_status_LEDs(PMS_LED,HIGH,LOW,2000);	// turn PMS status led on for 2 seconds
 	}
-	else
-	{
-		switch_status_LEDs_off(PMS_LED,LOW);	// turn PMS status led off
-	}
-
+  
 	if (cfg::rtc_read) {
 		rtc.begin();
 		debug_outln_info(F("Read Time from RTC..."));
 		init_RTC();
-		toggle_status_LEDs(RTC_LED,HIGH,LOW,2000);	// turn RTC status led on for 2 seconds
-	}
-	else
-	{
-		switch_status_LEDs_off(RTC_LED,LOW);	// turn RTC status led off
 	}
 
 	if (cfg::htu21d_read) {
@@ -3974,27 +3911,6 @@ static void powerOnTestSensors() {
 	if(cfg::sph0645_read){
 		debug_outln_info(F("Read SPH0645..."));
 		init_SPH0645();
-		toggle_status_LEDs(MIC_LED,HIGH,LOW,2000);	// turn mic status led on for 2 seconds
-	}
-	else
-	{
-		switch_status_LEDs_off(MIC_LED,LOW);	// turn mic status led off
-	}
-
-	if (cfg::gps_read){
-		toggle_status_LEDs(GPS_LED,HIGH,LOW,2000);	// turn GPS status led on for 2 seconds
-	}
-	else
-	{
-		switch_status_LEDs_off(GPS_LED,LOW);	// turn GPS status led off
-	}
-
-	if (cfg::sd_read){
-		toggle_status_LEDs(LOGGER_LED,HIGH,LOW,2000);	// turn logger status led on for 2 seconds
-	}
-	else
-	{
-		switch_status_LEDs_off(LOGGER_LED,LOW);	// turn logger status led off
 	}
 
 }
@@ -4247,7 +4163,6 @@ void setup(void) {
 		SOFTWARE_VERSION += F("-STF");
 	}
 
-	init_PCF8575();
 	init_config();
 	init_display();
 	init_lcd();
@@ -4287,31 +4202,6 @@ void setup(void) {
 	wdt_enable(120000);
 #endif
 #endif
-	if(cfg::wifi_enabled && cfg::send_logged_data){
-		// Turn on all status LEDs to indicate sending data to API
-		switch_status_LEDs_on(PMS_LED,HIGH);
-		switch_status_LEDs_on(GPS_LED,HIGH);
-		switch_status_LEDs_on(LOGGER_LED,HIGH);
-		switch_status_LEDs_on(DHT_LED,HIGH);
-		switch_status_LEDs_on(RTC_LED,HIGH);
-		switch_status_LEDs_on(MIC_LED,HIGH);
-
-		readLoggingFileAndSendToCFA();
-		cfg::log_file_id += 1;
-		cfg::wifi_enabled = 0;
-		cfg::send_logged_data = 0;
-		writeConfig();
-
-		//Turn off all status LEDS to indicate completion of sending to API
-		switch_status_LEDs_off(PMS_LED,LOW); 
-		switch_status_LEDs_off(GPS_LED,LOW);
-		switch_status_LEDs_off(LOGGER_LED,LOW);
-		switch_status_LEDs_off(DHT_LED,LOW);
-		switch_status_LEDs_off(RTC_LED,LOW);
-		switch_status_LEDs_off(MIC_LED,LOW);
-
-		delay(300000); //Delay for 5 minutes before starting another sample cycle.
-	}
 	starttime = millis();									// store the start time
 	last_update_attempt = time_point_device_start_ms = starttime;
 	last_display_millis = starttime_SDS = starttime;
