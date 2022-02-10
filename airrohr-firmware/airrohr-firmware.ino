@@ -104,7 +104,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <RTClib.h>
 #include <SD.h>
 #include <SPI.h>
-#include <Adafruit_HTU21DF.h>
 #include <StreamString.h>
 #include <DallasTemperature.h>
 #include <TinyGPS++.h>
@@ -206,7 +205,6 @@ namespace cfg {
 
 	// (in)active sensors
 	bool sph0645_read = SPHO645_READ;
-	bool htu21d_read = HTU21D_READ;
 	bool sds_read = SDS_READ;
 	bool pms_read = PMS_READ;
 	bool dnms_read = DNMS_READ;
@@ -305,7 +303,6 @@ enum class PmSensorCmd {
 LoggerConfig loggerConfigs[LoggerCount];
 
 long int sample_count = 0;
-bool htu21d_init_failed = false;
 bool dnms_init_failed = false;
 bool gps_init_failed = false;
 bool rtc_init_failed = false;
@@ -354,11 +351,6 @@ SoftwareSerial* serialGPS;
 SoftwareSerial atmega328p;
 
 /*****************************************************************
- * HTU21D declaration                                            *
- *****************************************************************/
-Adafruit_HTU21DF htu21d;
-
-/*****************************************************************
  * GPS declaration                                               *
  *****************************************************************/
 TinyGPSPlus gps;
@@ -392,9 +384,6 @@ unsigned long sending_time = 0;
 unsigned long last_update_attempt;
 int last_update_returncode;
 int last_sendData_returncode;
-
-float last_value_HTU21D_T = -128.0;
-float last_value_HTU21D_H = -1.0;
 
 uint32_t sds_pm10_sum = 0;
 uint32_t sds_pm25_sum = 0;
@@ -1385,7 +1374,6 @@ static void webserver_config_send_body_get(String& page_content) {
 	page_content = emptyString;
 
 	add_form_checkbox_sensor(Config_sph0645_read, FPSTR(INTL_SPH0645));
-	add_form_checkbox_sensor(Config_htu21d_read, FPSTR(INTL_HTU21D));
   
 	// Paginate page after ~ 1500 Bytes
 	server.sendContent(page_content);
@@ -1510,7 +1498,6 @@ static void webserver_config_send_body_post(String& page_content) {
 	add_line_value_bool(page_content, FPSTR(INTL_SEND_TO), F("Sensor.Community"), send2dusti);
 	add_line_value_bool(page_content, FPSTR(INTL_SEND_TO), F("Madavi"), send2madavi);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SPH0645), sph0645_read);
-	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_HTU21D), htu21d_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SDS011), sds_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PMSx003), pms_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_DNMS), dnms_read);
@@ -1725,11 +1712,6 @@ static void webserver_values() {
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM1), check_display_value(last_value_PMS_P0, -1, 1, 0), unit_PM);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM25), check_display_value(last_value_PMS_P2, -1, 1, 0), unit_PM);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_PMSx003), FPSTR(WEB_PM10), check_display_value(last_value_PMS_P1, -1, 1, 0), unit_PM);
-		}
-		if (cfg::htu21d_read) {
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_HTU21D), FPSTR(INTL_TEMPERATURE), check_display_value(last_value_HTU21D_T, -128, 1, 0), unit_T);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_HTU21D), FPSTR(INTL_HUMIDITY), check_display_value(last_value_HTU21D_H, -1, 1, 0), unit_H);
 		}
 		if (cfg::dnms_read) {
 			page_content += FPSTR(EMPTY_ROW);
@@ -2233,7 +2215,6 @@ static void wifiConfig() {
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("SDS: "), cfg::sds_read);
 	debug_outln_info_bool(F("PMS: "), cfg::pms_read);
-	debug_outln_info_bool(F("HTU21D: "), cfg::htu21d_read);
 	debug_outln_info_bool(F("DNMS: "), cfg::dnms_read);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	debug_outln_info_bool(F("SensorCommunity: "), cfg::send2dusti);
@@ -2590,29 +2571,6 @@ static void send_csv(const String& data) {
 	} else {
 		debug_outln_error(FPSTR(DBG_TXT_DATA_READ_FAILED));
 	}
-}
-
-/*****************************************************************
- * read HTU21D sensor values                                     *
- *****************************************************************/
-static void fetchSensorHTU21D(String& s) {
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_HTU21D));
-
-	const auto t = htu21d.readTemperature();
-	const auto h = htu21d.readHumidity();
-	if (isnan(t) || isnan(h)) {
-		last_value_HTU21D_T = -128.0;
-		last_value_HTU21D_H = -1.0;
-		debug_outln_error(F("HTU21D read failed"));
-	} else {
-		last_value_HTU21D_T = t;
-		last_value_HTU21D_H = h;
-		add_Value2Json(s, F("HTU21D_temperature"), FPSTR(DBG_TXT_TEMPERATURE), last_value_HTU21D_T);
-		add_Value2Json(s, F("HTU21D_humidity"), FPSTR(DBG_TXT_HUMIDITY), last_value_HTU21D_H);
-	}
-	debug_outln_info(FPSTR(DBG_TXT_SEP));
-
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_HTU21D));
 }
 
 /*****************************************************************
@@ -3495,11 +3453,6 @@ static void display_values() {
 		pm10_value = last_value_SDS_P1;
 		pm25_value = last_value_SDS_P2;
 	}
-	if (cfg::htu21d_read) {
-		h_sensor = t_sensor = FPSTR(SENSORS_HTU21D);
-		t_value = last_value_HTU21D_T;
-		h_value = last_value_HTU21D_H;
-	}
 	if (cfg::dnms_read) {
 		la_sensor = FPSTR(SENSORS_DNMS);
 		la_eq_value = last_value_dnms_laeq;
@@ -3789,15 +3742,6 @@ static void powerOnTestSensors() {
 		init_RTC();
 	}
 
-	if (cfg::htu21d_read) {
-		debug_outln_info(F("Read HTU21D..."));
-		// begin() might return false when using Si7021
-		// so validate reading via Humidity (will return 0.0 when failed)
-		if (!htu21d.begin() && htu21d.readHumidity() < 1.0f) {
-			debug_outln_error(F("Check HTU21D wiring"));
-			htu21d_init_failed = true;
-		}
-	}
 	if (cfg::dnms_read) {
 		debug_outln_info(F("Read DNMS..."));
 		initDNMS();
@@ -4246,19 +4190,6 @@ void loop(void) {
 				sum_send_time += sendCFA(result_PMS, PMS_API_PIN, FPSTR(SENSORS_PMSx003), "PMS_");
 				sum_send_time += sendSensorCommunity(result_PMS, PMS_API_PIN, FPSTR(SENSORS_PMSx003), "PMS_");
 			}
-		}
-		if (cfg::htu21d_read && (! htu21d_init_failed)) {
-			// getting temperature and humidity (optional)
-			fetchSensorHTU21D(result);
-			data += result;
-			if(cfg::send2sd) {
-				sum_send_time += sendSD(result, HTU21D_API_PIN, FPSTR(SENSORS_HTU21D), "HTU21D_");
-			}
-      		if(cfg::wifi_enabled) {
-				sum_send_time += sendCFA(result, HTU21D_API_PIN, FPSTR(SENSORS_HTU21D), "HTU21D_");
-				sum_send_time += sendSensorCommunity(result, HTU21D_API_PIN, FPSTR(SENSORS_HTU21D), "HTU21D_");
-			}
-			result = emptyString;
 		}
 		if (cfg::dnms_read && (! dnms_init_failed)) {
 			// getting noise measurement values from dnms (optional)

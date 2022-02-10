@@ -221,10 +221,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 // MicroSD
 #define SD_READ 1
 
-// HTU21D, temperature, humidity
-#define HTU21D_READ 0
-#define HTU21D_API_PIN 7
-
 // SDS011, the more expensive version of the particle sensor
 #define SDS_READ 0
 #define SDS_API_PIN 1
