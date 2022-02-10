@@ -143,9 +143,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define SD_MOSI D7
 #define SD_chipSelect D8
 
-// PPD42NS, the cheaper version of the particle sensor
-#define PPD_PIN_PM1 GPS_SERIAL_TX
-#define PPD_PIN_PM2 GPS_SERIAL_RX
 
 //define I2S pins for the SPH0645 MIC
 #define I2SI_DATA         12    // I2S data on GPIO12
@@ -157,8 +154,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 // pin assignments for Arduino SAMD Zero board
 #if defined(ARDUINO_SAMD_ZERO)
 #define ONEWIRE_PIN D7
-#define PPD_PIN_PM1 GPS_SERIAL_TX
-#define PPD_PIN_PM2 GPS_SERIAL_RX
 #if defined(SERIAL_PORT_USBVIRTUAL)
 #define RFM69_CS 8
 #define RFM69_RST 4
@@ -182,8 +177,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define GPS_SERIAL_RX D19
 #define GPS_SERIAL_TX D23
 #endif
-#define PPD_PIN_PM1 GPS_SERIAL_TX
-#define PPD_PIN_PM2 GPS_SERIAL_RX
 //#define RFM69_CS D0
 //#define RFM69_RST D2
 //#define RFM69_INT D4
@@ -198,8 +191,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define PM_SERIAL_TX D2_STRAPPING
 #define GPS_SERIAL_RX D13_JTAG_TCK
 #define GPS_SERIAL_TX D0_STRAPPING
-#define PPD_PIN_PM1 GPS_SERIAL_TX
-#define PPD_PIN_PM2 GPS_SERIAL_RX
 #endif
 
 // pin assignments for heltec_wifi_lora_32 board
@@ -211,8 +202,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define PM_SERIAL_TX D2_STRAPPING
 #define GPS_SERIAL_RX D13_JTAG_TCK
 #define GPS_SERIAL_TX D0_STRAPPING
-#define PPD_PIN_PM1 GPS_SERIAL_TX
-#define PPD_PIN_PM2 GPS_SERIAL_RX
 #endif
 
 //Activate device to send logged data
@@ -235,10 +224,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 // HTU21D, temperature, humidity
 #define HTU21D_READ 0
 #define HTU21D_API_PIN 7
-
-// PPD42NS, the cheaper version of the particle sensor
-#define PPD_READ 0
-#define PPD_API_PIN 5
 
 // SDS011, the more expensive version of the particle sensor
 #define SDS_READ 0

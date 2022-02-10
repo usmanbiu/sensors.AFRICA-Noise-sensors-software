@@ -24,7 +24,6 @@ const char DBG_TXT_SEP[] PROGMEM = "----";
 
 const char SENSORS_SPH0645[] PROGMEM = "SPH0645";
 const char SENSORS_SDS011[] PROGMEM = "SDS011";
-const char SENSORS_PPD42NS[] PROGMEM = "PPD42NS";
 const char SENSORS_PMSx003[] PROGMEM = "PMSx003";
 const char SENSORS_HTU21D[] PROGMEM = "HTU21D";
 const char SENSORS_DNMS[] PROGMEM = "DNMS";

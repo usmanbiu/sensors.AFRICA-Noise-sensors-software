@@ -36,7 +36,6 @@ enum ConfigShapeId {
 	Config_send_logged_data,
 	Config_sph0645_read,
 	Config_htu21d_read,
-	Config_ppd_read,
 	Config_sds_read,
 	Config_pms_read,
 	Config_dnms_read,
@@ -102,7 +101,6 @@ const char CFG_KEY_WIFI_ENABLED[] PROGMEM = "wifi_enabled";
 const char CFG_KEY_SEND_LOGGED_DATA[] PROGMEM = "send_logged_data";
 const char CFG_KEY_SPH0645_READ[] PROGMEM = "sph0645_read";
 const char CFG_KEY_HTU21D_READ[] PROGMEM = "htu21d_read";
-const char CFG_KEY_PPD_READ[] PROGMEM = "ppd_read";
 const char CFG_KEY_SDS_READ[] PROGMEM = "sds_read";
 const char CFG_KEY_PMS_READ[] PROGMEM = "pms_read";
 const char CFG_KEY_DNMS_READ[] PROGMEM = "dnms_read";
@@ -168,7 +166,6 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND_LOGGED_DATA), &cfg::send_logged_data },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SPH0645_READ), &cfg::sph0645_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_HTU21D_READ), &cfg::htu21d_read },
-	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_PPD_READ), &cfg::ppd_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SDS_READ), &cfg::sds_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_PMS_READ), &cfg::pms_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_DNMS_READ), &cfg::dnms_read },

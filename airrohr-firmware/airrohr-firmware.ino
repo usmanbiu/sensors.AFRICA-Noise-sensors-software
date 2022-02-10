@@ -165,7 +165,6 @@ constexpr unsigned XLARGE_STR = 1024-1;
 
 #define RESERVE_STRING(name, size) String name((const char*)nullptr); name.reserve(size)
 
-const unsigned long SAMPLETIME_MS = 30000;									// time between two measurements of the PPD42NS
 const unsigned long SAMPLETIME_SDS_MS = 1000;								// time between two measurements of the SDS011, PMSx003, Honeywell PM sensor
 const unsigned long WARMUPTIME_SDS_MS = 15000;								// time needed to "warm up" the sensor before we can take the first measurement
 const unsigned long READINGTIME_SDS_MS = 5000;								// how long we read data from the PM sensors
@@ -208,7 +207,6 @@ namespace cfg {
 	// (in)active sensors
 	bool sph0645_read = SPHO645_READ;
 	bool htu21d_read = HTU21D_READ;
-	bool ppd_read = PPD_READ;
 	bool sds_read = SDS_READ;
 	bool pms_read = PMS_READ;
 	bool dnms_read = DNMS_READ;
@@ -376,19 +374,6 @@ RTC_DS3231 rtc;
 SoftwareSerial serialSD;
 File sensor_readings;
 
-/*****************************************************************
- * Variable Definitions for PPD24NS                              *
- * P1 for PM10 & P2 for PM25                                     *
- *****************************************************************/
-
-boolean trigP1 = false;
-boolean trigP2 = false;
-unsigned long trigOnP1;
-unsigned long trigOnP2;
-
-unsigned long lowpulseoccupancyP1 = 0;
-unsigned long lowpulseoccupancyP2 = 0;
-
 bool send_now = false;
 unsigned long starttime;
 unsigned long time_point_device_start_ms;
@@ -434,9 +419,6 @@ bool readPMSFromAtmega = true;
 //Variable to store SPH0645 Mic value
 float value_SPH0645 = 0.0;
 
-
-float last_value_PPD_P1 = -1.0;
-float last_value_PPD_P2 = -1.0;
 float last_value_SDS_P1 = -1.0;
 float last_value_SDS_P2 = -1.0;
 float last_value_PMS_P0 = -1.0;
@@ -1531,7 +1513,6 @@ static void webserver_config_send_body_post(String& page_content) {
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_HTU21D), htu21d_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SDS011), sds_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PMSx003), pms_read);
-	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_PPD42NS), ppd_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_DNMS), dnms_read);
 	add_line_value(page_content, FPSTR(INTL_DNMS_CORRECTION), String(dnms_correction));
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), F("GPS"), gps_read);
@@ -1734,11 +1715,6 @@ static void webserver_values() {
 		server.sendContent(page_content);
 		page_content = F("<table cellspacing='0' border='1' cellpadding='5'>\n"
 				  "<tr><th>" INTL_SENSOR "</th><th> " INTL_PARAMETER "</th><th>" INTL_VALUE "</th></tr>");
-		if (cfg::ppd_read) {
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_row_from_value(page_content, FPSTR(SENSORS_PPD42NS), FPSTR(WEB_PM1), check_display_value(last_value_PPD_P1, -1, 1, 0), FPSTR(INTL_PARTICLES_PER_LITER));
-			add_table_row_from_value(page_content, FPSTR(SENSORS_PPD42NS), FPSTR(WEB_PM25), check_display_value(last_value_PPD_P2, -1, 1, 0), FPSTR(INTL_PARTICLES_PER_LITER));
-		}
 		if (cfg::sds_read) {
 			page_content += FPSTR(EMPTY_ROW);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_SDS011), FPSTR(WEB_PM25), check_display_value(last_value_SDS_P2, -1, 1, 0), unit_PM);
@@ -2255,7 +2231,6 @@ static void wifiConfig() {
 	debug_outln_info(F("---- Result Webconfig ----"));
 	debug_outln_info(F("WLANSSID: "), cfg::wlanssid);
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
-	debug_outln_info_bool(F("PPD: "), cfg::ppd_read);
 	debug_outln_info_bool(F("SDS: "), cfg::sds_read);
 	debug_outln_info_bool(F("PMS: "), cfg::pms_read);
 	debug_outln_info_bool(F("HTU21D: "), cfg::htu21d_read);
@@ -2968,73 +2943,6 @@ String fetchSensorPMSFromAtmega(){
 }
 
 /*****************************************************************
- * read PPD42NS sensor values                                    *
- *****************************************************************/
-static void fetchSensorPPD(String& s) {
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), FPSTR(SENSORS_PPD42NS));
-
-	if (msSince(starttime) <= SAMPLETIME_MS) {
-
-		// Read pins connected to ppd42ns
-		boolean valP1 = digitalRead(PPD_PIN_PM1);
-		boolean valP2 = digitalRead(PPD_PIN_PM2);
-
-		if (valP1 == LOW && trigP1 == false) {
-			trigP1 = true;
-			trigOnP1 = act_micro;
-		}
-
-		if (valP1 == HIGH && trigP1 == true) {
-			lowpulseoccupancyP1 += act_micro - trigOnP1;
-			trigP1 = false;
-		}
-
-		if (valP2 == LOW && trigP2 == false) {
-			trigP2 = true;
-			trigOnP2 = act_micro;
-		}
-
-		if (valP2 == HIGH && trigP2 == true) {
-			unsigned long durationP2 = act_micro - trigOnP2;
-			lowpulseoccupancyP2 += durationP2;
-			trigP2 = false;
-		}
-
-	}
-	// Checking if it is time to sample
-	if (send_now) {
-		auto calcConcentration = [](const float ratio) {
-			/* spec sheet curve*/
-			return (1.1f * ratio * ratio * ratio - 3.8f * ratio * ratio + 520.0f * ratio + 0.62f);
-		};
-
-		last_value_PPD_P1 = -1;
-		last_value_PPD_P2 = -1;
-		float ratio = lowpulseoccupancyP1 / (SAMPLETIME_MS * 10.0f);
-		float concentration = calcConcentration(ratio);
-
-		// json for push to api / P1
-		last_value_PPD_P1 = concentration;
-		add_Value2Json(s, F("durP1"), F("LPO P10    : "), lowpulseoccupancyP1);
-		add_Value2Json(s, F("ratioP1"), F("Ratio PM10%: "), ratio);
-		add_Value2Json(s, F("P1"), F("PM10 Count : "), last_value_PPD_P1);
-
-		ratio = lowpulseoccupancyP2 / (SAMPLETIME_MS * 10.0f);
-		concentration = calcConcentration(ratio);
-
-		// json for push to api / P2
-		last_value_PPD_P2 = concentration;
-		add_Value2Json(s, F("durP2"), F("LPO PM25   : "), lowpulseoccupancyP2);
-		add_Value2Json(s, F("ratioP2"), F("Ratio PM25%: "), ratio);
-		add_Value2Json(s, F("P2"), F("PM25 Count : "), last_value_PPD_P2);
-
-		debug_outln_info(FPSTR(DBG_TXT_SEP));
-	}
-
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_PPD42NS));
-}
-
-/*****************************************************************
    read DNMS values
  *****************************************************************/
 
@@ -3567,7 +3475,6 @@ static void display_values() {
 	float la_max_value = -1.0;
 	float la_min_value = -1.0;
 	String la_sensor;
-	float tps_value = -1.0;
 	double lat_value = -200.0;
 	double lon_value = -200.0;
 	double alt_value = -1000.0;
@@ -3577,12 +3484,6 @@ static void display_values() {
 	uint8_t screens[8];
 	int line_count = 0;
 	debug_outln_info(F("output values to display..."));
-	if (cfg::ppd_read) {
-		pm10_value = last_value_PPD_P1;
-		pm10_sensor = FPSTR(SENSORS_PPD42NS);
-		pm25_value = last_value_PPD_P2;
-		pm25_sensor = FPSTR(SENSORS_PPD42NS);
-	}
 	if (cfg::pms_read) {
 		pm10_value = last_value_PMS_P1;
 		pm10_sensor = FPSTR(SENSORS_PMSx003);
@@ -3610,7 +3511,7 @@ static void display_values() {
 		lon_value = last_value_GPS_lon;
 		alt_value = last_value_GPS_alt;
 	}
-	if (cfg::ppd_read || cfg::pms_read || cfg::sds_read) {
+	if (cfg::pms_read || cfg::sds_read) {
 		screens[screen_count++] = 1;
 	}
 	if (cfg::gps_read) {
@@ -3862,12 +3763,6 @@ static void powerOnTestSensors() {
 	else
 	{
 		debug_outln_info(F("WIFI DISABLED..."));
-	}
-
-	if (cfg::ppd_read) {
-		pinMode(PPD_PIN_PM1, INPUT_PULLUP);					// Listen at the designated PIN
-		pinMode(PPD_PIN_PM2, INPUT_PULLUP);					// Listen at the designated PIN
-		debug_outln_info(F("Read PPD..."));
 	}
 
 	if (cfg::sds_read) {
@@ -4211,7 +4106,7 @@ void setup(void) {
  * And action                                                    *
  *****************************************************************/
 void loop(void) {
-	String result_PPD, result_SDS, result_PMS;
+	String result_SDS, result_PMS;
 	String result_GPS, result_DNMS, result_SPH0645;
 
 	unsigned sum_send_time = 0;
@@ -4253,11 +4148,6 @@ void loop(void) {
 		twoStageOTAUpdate();
 		last_update_attempt = act_milli;
 	}
-
-	if (cfg::ppd_read) {
-		fetchSensorPPD(result_PPD);
-	}
-
 
 	if (cfg::rtc_read) {
 		obtain_sendTime();
@@ -4336,18 +4226,6 @@ void loop(void) {
 				sum_send_time += sendCFA(result_SPH0645, SPH0645_API_PIN, FPSTR(SENSORS_SPH0645), "SPH0645_");
 				sum_send_time += sendSensorCommunity(result_SPH0645, SPH0645_API_PIN, FPSTR(SENSORS_SPH0645), "SHP0645_");
 			  } 
-		}
-
-		if (cfg::ppd_read) {
-			data += result_PPD;
-			if(cfg::send2sd) {
-				sum_send_time += sendSD(result_PPD, PPD_API_PIN, FPSTR(SENSORS_PPD42NS), "PPD_");
-			}
-			if(cfg::wifi_enabled){
-				sum_send_time += sendCFA(result_PPD, PPD_API_PIN, FPSTR(SENSORS_PPD42NS), "PPD_");
-				sum_send_time += sendSensorCommunity(result_PPD, PPD_API_PIN, FPSTR(SENSORS_PPD42NS), "PPD_");
-			}
-      		
 		}
 		if (cfg::sds_read) {
 			data += result_SDS;
@@ -4438,8 +4316,6 @@ void loop(void) {
 
 		// Resetting for next sampling
 		last_data_string = std::move(data);
-		lowpulseoccupancyP1 = 0;
-		lowpulseoccupancyP2 = 0;
 		sample_count = 0;
 		last_micro = 0;
 		min_micro = 1000000000;
