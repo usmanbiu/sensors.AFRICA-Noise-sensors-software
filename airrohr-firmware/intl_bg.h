@@ -22,7 +22,6 @@ const char INTL_MORE_SENSORS[] PROGMEM = "More Сензори";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DNMS[] PROGMEM = "DNMS ({l_a})";
 const char INTL_DNMS_CORRECTION[] PROGMEM ="корекция в dB (A)";
-const char INTL_NEO6M[] PROGMEM = "GPS (NEO 6M)";
 const char INTL_BASICAUTH[] PROGMEM = "Оторизация";
 
 const char INTL_ENABLE_WIFI[] PROGMEM = "WIFI ENABLED";
@@ -90,11 +89,6 @@ const char INTL_PRESSURE[] PROGMEM = "Атмосферно налягане";
 const char INTL_LEQ_A[] PROGMEM = "LAeq";
 const char INTL_LA_MIN[] PROGMEM = "LA min";
 const char INTL_LA_MAX[] PROGMEM = "LA max";
-const char INTL_LATITUDE[] PROGMEM = "Географска ширина";
-const char INTL_LONGITUDE[] PROGMEM = "Географска дължина";
-const char INTL_ALTITUDE[] PROGMEM = "Надморска височина";
-const char INTL_DATE[] PROGMEM = "Дата";
-const char INTL_TIME[] PROGMEM = "Дата";
 const char INTL_SIGNAL_STRENGTH[] PROGMEM = "Сила на сигнала";
 const char INTL_SIGNAL_QUALITY[] PROGMEM = "Качество на сигнала";
 #define INTL_NUMBER_OF_MEASUREMENTS "Брой измервания"
