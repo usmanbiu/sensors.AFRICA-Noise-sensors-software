@@ -9,7 +9,6 @@
  */
 
 const char INTL_LANG[] = "PL";
-#define INTL_PM_SENSOR "Czujnik pyłu zawieszonego"
 const char INTL_CONFIGURATION[] PROGMEM = "Konfiguracja";
 #define INTL_WIFI_SETTINGS "Ustawienia WiFi"
 #define INTL_WIFI_NETWORKS "Ładowanie sieci WiFi..."
@@ -20,8 +19,6 @@ const char INTL_AB_HIER_NUR_ANDERN[] PROGMEM = "Ustawienia zaawansowane (tylko g
 const char INTL_SAVE[] PROGMEM = "Zapisz";
 const char INTL_SENSORS[] PROGMEM = "Sensory";
 const char INTL_MORE_SENSORS[] PROGMEM = "More Sensory";
-const char INTL_SDS011[] PROGMEM = "SDS011 ({pm})";
-const char INTL_PMS[] PROGMEM = "Plantower PMS(1,3,5,6,7)003 ({pm})";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DNMS[] PROGMEM = "DNMS ({l_a})";
 const char INTL_DNMS_CORRECTION[] PROGMEM ="poprawka w dB(A)";

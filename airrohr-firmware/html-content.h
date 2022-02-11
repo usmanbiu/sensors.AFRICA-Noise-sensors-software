@@ -16,15 +16,12 @@ const char DBG_TXT_UPDATE[] PROGMEM = "[update] ";
 const char DBG_TXT_UPDATE_FAILED[] PROGMEM = "Update failed.";
 const char DBG_TXT_UPDATE_NO_UPDATE[] PROGMEM = "No update.";
 const char DBG_TXT_SENDING_TO[] PROGMEM = "## Sending to ";
-const char DBG_TXT_SDS011_VERSION_DATE[] PROGMEM = "SDS011 version date";
 const char DBG_TXT_CONNECTING_TO[] PROGMEM = "Connecting to ";
 const char DBG_TXT_FOUND[] PROGMEM = " ... found";
 const char DBG_TXT_NOT_FOUND[] PROGMEM = " ... not found";
 const char DBG_TXT_SEP[] PROGMEM = "----";
 
 const char SENSORS_SPH0645[] PROGMEM = "SPH0645";
-const char SENSORS_SDS011[] PROGMEM = "SDS011";
-const char SENSORS_PMSx003[] PROGMEM = "PMSx003";
 const char SENSORS_DNMS[] PROGMEM = "DNMS";
 
 const char WEB_PAGE_HEADER[] PROGMEM = "<!DOCTYPE html><html>\
@@ -49,7 +46,7 @@ input[type='submit']:hover {background:#d44} \
 <div style='min-height:129px;background-color:#3ba;margin-bottom:20px;box-shadow:0px 4px 6px #3ba'>\
 <a href='/' style='background:none;display:inline'><img src='/images?name=luftdaten_logo' style='float:left;margin:20px' width='100' height='89'/></a>";
 
-const char WEB_PAGE_HEADER_BODY[] PROGMEM = "<h3 style='margin:0'>" INTL_PM_SENSOR "</h3>\
+const char WEB_PAGE_HEADER_BODY[] PROGMEM = "<h3 style='margin:0'> Change to Noise</h3>\
 <small>ID: {id}<br/>MAC: {mac}<br/>" INTL_FIRMWARE ": " SOFTWARE_VERSION_STR "<br/>(" __DATE__ " " __TIME__ ")<br/>\
 <a href='https://github.com/opendata-stuttgart/sensors-software/labels/bug' target='_blank' rel='noreferrer'>Report an issue</a>\
 </small></div><div class='content'><h4>" INTL_HOME " {n} {t}</h4>";
@@ -114,10 +111,6 @@ const char WEB_FEINSTAUB_APP[] PROGMEM = "Feinstaub-App";
 const char WEB_HTTPS[] PROGMEM = "HTTPS";
 const char WEB_NBSP_NBSP_BRACE[] PROGMEM = "&nbsp;&nbsp;(";
 const char WEB_REPLN_REPLV[] PROGMEM = "\"{n}\":\"{v}\",";
-const char WEB_PM1[] PROGMEM = "PM1";
-const char WEB_PM25[] PROGMEM = "PM2.5";
-const char WEB_PM10[] PROGMEM = "PM10";
-const char WEB_PM4[] PROGMEM = "PM4";
 const char WEB_NC0k5[] PROGMEM = "NC0.5";
 const char WEB_NC1k0[] PROGMEM = "NC1.0";
 const char WEB_NC2k5[] PROGMEM = "NC2.5";
