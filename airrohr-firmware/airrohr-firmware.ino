@@ -101,7 +101,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <SPI.h>
 #include <StreamString.h>
 #include <DallasTemperature.h>
-#include <TinyGPS++.h>
 #include "./dnms_i2c.h"
 #include "./SPH0645.h"
 
@@ -159,7 +158,6 @@ constexpr unsigned XLARGE_STR = 1024-1;
 
 #define RESERVE_STRING(name, size) String name((const char*)nullptr); name.reserve(size)
 
-const unsigned long SAMPLETIME_GPS_MS = 50;
 const unsigned long DISPLAY_UPDATE_INTERVAL_MS = 5000;						// time between switching display to next "screen"
 const unsigned long ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 const unsigned long PAUSE_BETWEEN_UPDATE_ATTEMPTS_MS = ONE_DAY_IN_MS;		// check for firmware updates once a day
@@ -199,7 +197,6 @@ namespace cfg {
 	bool sph0645_read = SPHO645_READ;
 	bool dnms_read = DNMS_READ;
 	char dnms_correction[LEN_DNMS_CORRECTION] = DNMS_CORRECTION;
-	bool gps_read = GPS_READ;
 	bool sd_read = SD_READ;
 
 	// send to "APIs"
@@ -287,7 +284,6 @@ LoggerConfig loggerConfigs[LoggerCount];
 
 long int sample_count = 0;
 bool dnms_init_failed = false;
-bool gps_init_failed = false;
 bool airrohr_selftest_failed = false;
 
 #if defined(ESP8266)
@@ -314,23 +310,11 @@ SH1106 display_sh1106(0x3c, I2C_PIN_SDA, I2C_PIN_SCL);
 LiquidCrystal_I2C* lcd_1602 = nullptr;
 LiquidCrystal_I2C* lcd_2004 = nullptr;
 
-#if defined(ESP8266)
-SoftwareSerial* serialGPS;
-#endif
-#if defined(ESP32)
-#define serialGPS (&(Serial2))
-#endif
-
 
 /****************************************************************
  * ATMEGA328P declaration
  * **************************************************************/
 SoftwareSerial atmega328p;
-
-/*****************************************************************
- * GPS declaration                                               *
- *****************************************************************/
-TinyGPSPlus gps;
 
 /*****************************************************************
  * MicroSD declaration                                           *
@@ -341,7 +325,6 @@ File sensor_readings;
 bool send_now = false;
 unsigned long starttime;
 unsigned long time_point_device_start_ms;
-unsigned long starttime_GPS;
 unsigned long act_micro;
 unsigned long act_milli;
 unsigned long last_micro = 0;
@@ -356,16 +339,7 @@ int last_sendData_returncode;
 //Variable to store SPH0645 Mic value
 float value_SPH0645 = 0.0;
 
-double last_value_GPS_lat = -200.0;
-double last_value_GPS_lon = -200.0;
-double last_value_GPS_alt = -1000.0;
-String last_value_GPS_date;
-String last_value_GPS_time;
-String last_value_GPS_timestamp;
-String timestamp;
-String last_data_string;
 int last_signal_strength;
-bool readGPSFromAtmega = true;
 
 String esp_chipid;
 
@@ -530,18 +504,6 @@ static void add_Value2Json(String& res, const __FlashStringHelper* type, const S
 static void add_Value2Json(String& res, const __FlashStringHelper* type, const __FlashStringHelper* debug_type, const float& value) {
 	debug_outln_info(FPSTR(debug_type), value);
 	add_Value2Json(res, type, String(value));
-}
-
-/*****************************************************************
- * disable unneeded NMEA sentences, TinyGPS++ needs GGA, RMC     *
- *****************************************************************/
-static void disable_unneeded_nmea() {
-	serialGPS->println(F("$PUBX,40,GLL,0,0,0,0*5C"));       // Geographic position, latitude / longitude
-//	serialGPS->println(F("$PUBX,40,GGA,0,0,0,0*5A"));       // Global Positioning System Fix Data
-	serialGPS->println(F("$PUBX,40,GSA,0,0,0,0*4E"));       // GPS DOP and active satellites
-//	serialGPS->println(F("$PUBX,40,RMC,0,0,0,0*47"));       // Recommended minimum specific GPS/Transit data
-	serialGPS->println(F("$PUBX,40,GSV,0,0,0,0*59"));       // GNSS satellites in view
-	serialGPS->println(F("$PUBX,40,VTG,0,0,0,0*5E"));       // Track made good and ground speed
 }
 
 /*******************************************************
@@ -1195,8 +1157,6 @@ static void webserver_config_send_body_get(String& page_content) {
 	page_content += FPSTR(INTL_MORE_SENSORS);
 	page_content += FPSTR(WEB_B_BR);
 
-	add_form_checkbox(Config_gps_read, FPSTR(INTL_NEO6M));
-
 	page_content += FPSTR(WEB_BR_LF_B);
 	page_content += F("APIs");
 	page_content += FPSTR(WEB_B_BR);
@@ -1306,7 +1266,6 @@ static void webserver_config_send_body_post(String& page_content) {
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_SPH0645), sph0645_read);
 	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), FPSTR(SENSORS_DNMS), dnms_read);
 	add_line_value(page_content, FPSTR(INTL_DNMS_CORRECTION), String(dnms_correction));
-	add_line_value_bool(page_content, FPSTR(INTL_READ_FROM), F("GPS"), gps_read);
 
 	// Paginate after ~ 1500 bytes
 	server.sendContent(page_content);
@@ -1513,14 +1472,6 @@ static void webserver_values() {
 		if (cfg::sph0645_read) {
 			page_content += FPSTR(EMPTY_ROW);
 			add_table_row_from_value(page_content, FPSTR(SENSORS_SPH0645), FPSTR(INTL_SPH0645), check_display_value(value_SPH0645, -1, 1, 0), unit_LA);
-		}
-		if (cfg::gps_read) {
-			page_content += FPSTR(EMPTY_ROW);
-			add_table_row_from_value(page_content, FPSTR(WEB_GPS), FPSTR(INTL_LATITUDE), check_display_value(last_value_GPS_lat, -200.0, 6, 0), unit_Deg);
-			add_table_row_from_value(page_content, FPSTR(WEB_GPS), FPSTR(INTL_LONGITUDE), check_display_value(last_value_GPS_lon, -200.0, 6, 0), unit_Deg);
-			add_table_row_from_value(page_content, FPSTR(WEB_GPS), FPSTR(INTL_ALTITUDE), check_display_value(last_value_GPS_alt, -1000.0, 2, 0), "m");
-			add_table_row_from_value(page_content, FPSTR(WEB_GPS), FPSTR(INTL_DATE), last_value_GPS_date, emptyString);
-			add_table_row_from_value(page_content, FPSTR(WEB_GPS), FPSTR(INTL_TIME), last_value_GPS_time, emptyString);
 		}
 
 		server.sendContent(page_content);
@@ -2416,176 +2367,6 @@ static void fetchSensorDNMS(String& s) {
 	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), FPSTR(SENSORS_DNMS));
 }
 
-/*****************************************************************
- * read GPS sensor values                                        *
- *****************************************************************/
-static void fetchSensorGPS(String& s) {
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), "GPS");
-
-	if (gps.location.isUpdated()) {
-		if (gps.location.isValid()) {
-			last_value_GPS_lat = gps.location.lat();
-			last_value_GPS_lon = gps.location.lng();
-		} else {
-			last_value_GPS_lat = -200;
-			last_value_GPS_lon = -200;
-			debug_outln_verbose(F("Lat/Lng INVALID"));
-		}
-		if (gps.altitude.isValid()) {
-			last_value_GPS_alt = gps.altitude.meters();
-			String gps_alt(last_value_GPS_lat);
-		} else {
-			last_value_GPS_alt = -1000;
-			debug_outln_verbose(F("Altitude INVALID"));
-		}
-		if (gps.date.isValid()) {
-			char gps_date[16];
-			snprintf_P(gps_date, sizeof(gps_date), PSTR("%02d/%02d/%04d"),
-					gps.date.month(), gps.date.day(), gps.date.year());
-			last_value_GPS_date = gps_date;
-			last_value_GPS_timestamp = gps_date;
-		} else {
-			debug_outln_verbose(F("Date INVALID"));
-		}
-		if (gps.time.isValid()) {
-			char gps_time[20];
-			snprintf_P(gps_time, sizeof(gps_time), PSTR("%02d:%02d:%02d.%02d"),
-					gps.time.hour(), gps.time.minute(), gps.time.second(), gps.time.centisecond());
-			last_value_GPS_time = gps_time;
-			last_value_GPS_timestamp += "T";
-			last_value_GPS_timestamp += gps_time;
-		} else {
-			debug_outln_verbose(F("Time: INVALID"));
-		}
-	}
-
-	if (send_now) {
-		debug_outln_info(F("Lat: "), String(last_value_GPS_lat, 6));
-		debug_outln_info(F("Lng: "), String(last_value_GPS_lon, 6));
-		debug_outln_info(F("Date: "), last_value_GPS_date);
-		debug_outln_info(F("Time "), last_value_GPS_time);
-
-		add_Value2Json(s, F("GPS_lat"), String(last_value_GPS_lat, 6));
-		add_Value2Json(s, F("GPS_lon"), String(last_value_GPS_lon, 6));
-		add_Value2Json(s, F("GPS_height"), F("Altitude: "), last_value_GPS_alt);
-		add_Value2Json(s, F("GPS_timestamp"), last_value_GPS_timestamp);
-		debug_outln_info(FPSTR(DBG_TXT_SEP));
-
-	}
-
-	if ( count_sends > 0 && gps.charsProcessed() < 10) {
-		debug_outln_error(F("No GPS data received: check wiring"));
-		gps_init_failed = true;
-	}
-
-	debug_outln_verbose(FPSTR(DBG_TXT_END_READING), "GPS");
-}
-
-
-/*****************************************************************
- * parse GPS sensor values for DEBUG                         *
- *****************************************************************/
-String parseGPSPayloadForDebug(String &gps_data){
-
-	RESERVE_STRING(s,SMALL_STR);
-
-	//parse GPS latitude
-	int start_GPS_lat = gps_data.indexOf('{');
-	int end_GPS_lat = gps_data.indexOf('}',start_GPS_lat);
-	String GPS_lat_value = gps_data.substring(start_GPS_lat,end_GPS_lat);
-
-	DynamicJsonDocument Lat_doc(1024);
-	deserializeJson(Lat_doc,GPS_lat_value);
-  	JsonObject Lat_obj = Lat_doc.as<JsonObject>();
-	String Lat_value = Lat_obj["value"];
-
-	//parse GPS longitude
-	int start_GPS_lon = gps_data.indexOf('{',end_GPS_lat);
-	int end_GPS_lon = gps_data.indexOf('}',start_GPS_lon);
-	String GPS_lon_value = gps_data.substring(start_GPS_lon,end_GPS_lon);
-
-	DynamicJsonDocument Lon_doc(1024);
-	deserializeJson(Lon_doc,GPS_lon_value);
-  	JsonObject Lon_obj = Lon_doc.as<JsonObject>();
-	String Lon_value = Lon_obj["value"];
-
-	//parse GPS altitude
-	int start_GPS_alt = gps_data.indexOf('{',end_GPS_lon);
-	int end_GPS_alt = gps_data.indexOf('}',start_GPS_alt);
-	String GPS_alt_value = gps_data.substring(start_GPS_alt,end_GPS_alt);
-
-	DynamicJsonDocument Alt_doc(1024);
-	deserializeJson(Alt_doc,GPS_alt_value);
-  	JsonObject Alt_obj = Alt_doc.as<JsonObject>();
-	String Alt_value = Alt_obj["value"];
-
-	//parse GPS date
-	int start_GPS_date = gps_data.indexOf('{',end_GPS_alt);
-	int end_GPS_date= gps_data.indexOf('}',start_GPS_date);
-	String GPS_date_value = gps_data.substring(start_GPS_date,end_GPS_date);
-
-	DynamicJsonDocument Date_doc(1024);
-	deserializeJson(Date_doc,GPS_date_value);
-  	JsonObject Date_obj = Date_doc.as<JsonObject>();
-	String Date_value = Date_obj["value"];
-
-	//parse GPS time
-	int start_GPS_time = gps_data.indexOf('{',end_GPS_date);
-	int end_GPS_time= gps_data.indexOf('}',start_GPS_time);
-	String GPS_time_value = gps_data.substring(start_GPS_time,end_GPS_time);
-
-	DynamicJsonDocument Time_doc(1024);
-	deserializeJson(Time_doc,GPS_time_value);
-  	JsonObject Time_obj = Time_doc.as<JsonObject>();
-	String Time_value = Time_obj["value"];
-
-	last_value_GPS_lat = Lat_value.toFloat();
-	last_value_GPS_lon = Lon_value.toFloat();
-	last_value_GPS_alt = Alt_value.toFloat();
-	last_value_GPS_date = Date_value;
-	last_value_GPS_time = Time_value;
-	last_value_GPS_timestamp = last_value_GPS_date;
-	last_value_GPS_timestamp += "T";
-	last_value_GPS_timestamp += last_value_GPS_time;
-
-	
-	debug_outln_info(F("Lat: "), String(last_value_GPS_lat, 6));
-	debug_outln_info(F("Lng: "), String(last_value_GPS_lon, 6));
-	debug_outln_info(F("Date: "), last_value_GPS_date);
-	debug_outln_info(F("Time "), last_value_GPS_time);
-
-	add_Value2Json(s, F("GPS_lat"), String(last_value_GPS_lat, 6));
-	add_Value2Json(s, F("GPS_lon"), String(last_value_GPS_lon, 6));
-	add_Value2Json(s, F("GPS_height"), F("Altitude: "), last_value_GPS_alt);
-	add_Value2Json(s, F("GPS_timestamp"), last_value_GPS_timestamp);
-
-	return s;
-}
-
-
-/*****************************************************************
- * read GPS sensor values from ATMEGA                            *
- *****************************************************************/
-String fetchSensorGPSFromAtmega(){
-	debug_outln_verbose(FPSTR(DBG_TXT_START_READING), "GPS");
-	RESERVE_STRING(s,SMALL_STR);
-
-	//request GPS values from atmega328p
-	atmega328p.println("fetchSensorGPS");
-	delay(3000);
-	while(atmega328p.available() > 0){
-		String gps_data = atmega328p.readString();
-		if(gps_data.indexOf("GPS")){
-			int last_character = gps_data.lastIndexOf(",");
-			String formated_string = gps_data.substring(0,(last_character+1));
-			s = parseGPSPayloadForDebug(formated_string);
-			//Serial.println(s);
-		}
-	}
-
-	debug_outln_info(FPSTR(DBG_TXT_SEP));
-	return s;
-}
 
 /****************************************************************
  * INITIALIZE SPH0645 MICROPHONE
@@ -2869,14 +2650,6 @@ static void display_values() {
 		la_eq_value = last_value_dnms_laeq;
 		la_max_value = last_value_dnms_la_max;
 		la_min_value = last_value_dnms_la_min;
-	}
-	if (cfg::gps_read) {
-		lat_value = last_value_GPS_lat;
-		lon_value = last_value_GPS_lon;
-		alt_value = last_value_GPS_alt;
-	}
-	if (cfg::gps_read) {
-		screens[screen_count++] = 4;
 	}
 	if (cfg::dnms_read) {
 		screens[screen_count++] = 5;
@@ -3233,12 +3006,6 @@ void sendRetreivedDataToCFA(String read_data){
 			sendCFAFromLoggingFile(SPH0645_payload, SPH0645_API_PIN, FPSTR(SENSORS_SPH0645), "SPH0645_");
 		}
 	}
-	if(read_data.indexOf("GPS") >= 0){
-		String GPS_payload = parseRetreivedData(read_data);
-		if(!GPS_payload.isEmpty()){
-			sendCFAFromLoggingFile(GPS_payload, GPS_API_PIN, F("GPS"), "GPS_");
-		}
-	}
 }
 
 /*******************************************************************
@@ -3369,18 +3136,6 @@ void setup(void) {
 	createLoggerConfigs();
 	debug_outln_info(F("\nChipId: "), esp_chipid);
 
-	if (cfg::gps_read) {
-#if defined(ESP8266)
-		serialGPS = new SoftwareSerial;
-		serialGPS->begin(9600, SWSERIAL_8N1, GPS_SERIAL_RX, GPS_SERIAL_TX, false, 128);
-#endif
-#if defined(ESP32)
-		serialGPS->begin(9600, SERIAL_8N1, GPS_SERIAL_RX, GPS_SERIAL_TX);
-#endif
-		debug_outln_info(F("Read GPS..."));
-		disable_unneeded_nmea();
-	}
-
 	powerOnTestSensors();
 	logEnabledAPIs();
 	logEnabledDisplays();
@@ -3403,7 +3158,7 @@ void setup(void) {
  * And action                                                    *
  *****************************************************************/
 void loop(void) {
-	String result_GPS, result_DNMS, result_SPH0645;
+	String result_DNMS, result_SPH0645;
 
 	unsigned sum_send_time = 0;
 
@@ -3449,25 +3204,6 @@ void loop(void) {
 		fetchSensorSPH0645(result_SPH0645);
 	}
 
-	if (cfg::gps_read && !gps_init_failed) {
-		// process serial GPS data..
-		while (serialGPS->available() > 0) {
-			gps.encode(serialGPS->read());
-		}
-
-		if ((msSince(starttime_GPS) > SAMPLETIME_GPS_MS) || send_now) {
-			// getting GPS coordinates
-			if(readGPSFromAtmega){
-				result_GPS = fetchSensorGPSFromAtmega();
-			}
-			else{
-				fetchSensorGPS(result_GPS);
-			}
-			
-			starttime_GPS = act_milli;
-		}
-	}
-
 	if ((msSince(last_display_millis) > DISPLAY_UPDATE_INTERVAL_MS) &&
 			(cfg::has_display || cfg::has_sh1106 || lcd_1602 || lcd_2004)) {
 		display_values();
@@ -3511,17 +3247,6 @@ void loop(void) {
       		if(cfg::wifi_enabled) {
 				sum_send_time += sendCFA(result, DNMS_API_PIN, FPSTR(SENSORS_DNMS), "DNMS_");
 				sum_send_time += sendSensorCommunity(result, DNMS_API_PIN, FPSTR(SENSORS_DNMS), "DNMS_");
-			}
-			result = emptyString;
-		}
-		if (cfg::gps_read) {
-			data += result_GPS;
-			if(cfg::send2sd) {
-				sum_send_time += sendSD(result_GPS, GPS_API_PIN, F("GPS"), "GPS_");
-			}
-      		if(cfg::wifi_enabled) {
-				sum_send_time += sendCFA(result_GPS, GPS_API_PIN, F("GPS"), "GPS_");
-				sum_send_time += sendSensorCommunity(result_GPS, GPS_API_PIN, F("GPS"), "GPS_");
 			}
 			result = emptyString;
 		}

@@ -22,7 +22,6 @@ const char INTL_MORE_SENSORS[] PROGMEM = "More Moduly (èidla)";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DNMS[] PROGMEM = "DNMS ({l_a})";
 const char INTL_DNMS_CORRECTION[] PROGMEM ="korekce v dB (A)";
-const char INTL_NEO6M[] PROGMEM = "GPS (NEO 6M)";
 const char INTL_BASICAUTH[] PROGMEM = "Pøihlášení (heslem)";
 
 const char INTL_ENABLE_WIFI[] PROGMEM = "WIFI ENABLED";
@@ -90,11 +89,6 @@ const char INTL_PRESSURE[] PROGMEM = "tlak vzduchu";
 const char INTL_LEQ_A[] PROGMEM = "LAeq";
 const char INTL_LA_MIN[] PROGMEM = "LA min";
 const char INTL_LA_MAX[] PROGMEM = "LA max";
-const char INTL_LATITUDE[] PROGMEM = "Zem. šíøka";
-const char INTL_LONGITUDE[] PROGMEM = "Zem. délka";
-const char INTL_ALTITUDE[] PROGMEM = "Nadm. výška";
-const char INTL_DATE[] PROGMEM = "Datum";
-const char INTL_TIME[] PROGMEM = "Èas";
 const char INTL_SIGNAL_STRENGTH[] PROGMEM = "Síla signálu";
 const char INTL_SIGNAL_QUALITY[] PROGMEM = "Kvalita signálu";
 #define INTL_NUMBER_OF_MEASUREMENTS "Počet měření"

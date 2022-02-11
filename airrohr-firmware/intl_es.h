@@ -22,7 +22,6 @@ const char INTL_MORE_SENSORS[] PROGMEM = "More Sensores";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DNMS[] PROGMEM = "DNMS ({l_a})";
 const char INTL_DNMS_CORRECTION[] PROGMEM = "corrección en dB (A)";
-const char INTL_NEO6M[] PROGMEM = "GPS (NEO 6M)";
 const char INTL_BASICAUTH[] PROGMEM = "Autorización";
 
 const char INTL_ENABLE_WIFI[] PROGMEM = "WIFI ENABLED";
@@ -90,11 +89,6 @@ const char INTL_PRESSURE[] PROGMEM = "Presión atmosférica";
 const char INTL_LEQ_A[] PROGMEM = "LAeq";
 const char INTL_LA_MIN[] PROGMEM = "LA min";
 const char INTL_LA_MAX[] PROGMEM = "LA max";
-const char INTL_LATITUDE[] PROGMEM = "Latitud";
-const char INTL_LONGITUDE[] PROGMEM = "Longitud";
-const char INTL_ALTITUDE[] PROGMEM = "Altitud";
-const char INTL_DATE[] PROGMEM = "Fecha";
-const char INTL_TIME[] PROGMEM = "Tiempo";
 const char INTL_SIGNAL_STRENGTH[] PROGMEM = "Intensidad de Señal";
 const char INTL_SIGNAL_QUALITY[] PROGMEM = "Calidad de Señal";
 #define INTL_NUMBER_OF_MEASUREMENTS "Numero de mediciones"
