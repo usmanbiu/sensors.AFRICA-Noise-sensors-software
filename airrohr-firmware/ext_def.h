@@ -28,7 +28,6 @@ const char WWW_PASSWORD[] PROGMEM = "feinstaub";
 #define SEND2INFLUX 0
 #define SEND2LORA 0
 #define SEND2CSV 0
-#define SEND2SD 1
 #define SEND2CUSTOM 0
 
 // OpenSenseMap
@@ -121,13 +120,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define ATMEGA_RX D4
 #define ATMEGA_TX D3
 
-// define pins for the micro_sd logger shield
-#define SD_SCK D5
-#define SD_MISO D6
-#define SD_MOSI D7
-#define SD_chipSelect D8
-
-
 //define I2S pins for the SPH0645 MIC
 #define I2SI_DATA         12    // I2S data on GPIO12
 #define I2SI_BCK          13    // I2S clk on GPIO13
@@ -172,9 +164,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define GPS_SERIAL_TX D0_STRAPPING
 #endif
 
-//Activate device to send logged data
-#define SEND_LOGGED_DATA 0
-
 // Device is WiFi Enabled
 #define WIFI_ENABLED 0
 
@@ -182,8 +171,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define SPHO645_READ  1
 #define SPH0645_API_PIN 15
 
-// MicroSD
-#define SD_READ 1
 
 // DNMS Noise Measurement
 #define DNMS_READ 0

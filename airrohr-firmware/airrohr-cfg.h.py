@@ -10,12 +10,9 @@ String		fs_ssid
 Password		fs_pwd
 Bool		www_basicauth_enabled
 Bool        wifi_enabled
-Bool        send_logged_data
 Bool        sph0645_read
 Bool		dnms_read
 String		dnms_correction
-Bool		rtc_read
-Bool        sd_read
 Bool		send2cfa
 Bool		ssl_cfa
 Bool		send2dusti
@@ -26,7 +23,6 @@ Bool		send2sensemap
 Bool		send2fsapp
 Bool		send2aircms
 Bool		send2csv
-Bool		send2sd
 Bool		auto_update
 Bool		use_beta
 Bool		has_display
@@ -57,10 +53,6 @@ String		user_influx
 Password		pwd_influx
 String		measurement_name_influx
 Bool		ssl_influx
-UInt        total_logs
-UInt        daily_logs
-UInt        current_date
-UInt        log_file_id
 """
 
 with open("airrohr-cfg.h", "w") as h:

@@ -25,7 +25,6 @@ const char INTL_DNMS_CORRECTION[] PROGMEM ="корекція в дБ (А)";
 const char INTL_BASICAUTH[] PROGMEM = "Авторизація";
 
 const char INTL_ENABLE_WIFI[] PROGMEM = "WIFI ENABLED";
-const char INTL_SEND_LOGGED_DATA[] PROGMEM = "SEND LOGGED DATA";
 const char INTL_FS_WIFI_DESCRIPTION[] PROGMEM = "WiFi сенсор в режимі конфігурації";
 const char INTL_FS_WIFI_NAME[] PROGMEM = "Ім'я";
 const char INTL_MORE_SETTINGS[] PROGMEM ="Додаткові параметри";
