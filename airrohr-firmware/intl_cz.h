@@ -9,7 +9,6 @@
  */
 
 const char INTL_LANG[] = "CZ";
-#define INTL_PM_SENSOR "Senzor prachových èástic"
 const char INTL_CONFIGURATION[] PROGMEM = "Konfigurace";
 #define INTL_WIFI_SETTINGS "Nastavení Wi-Fi"
 #define INTL_WIFI_NETWORKS "Vyhledávání Wi-Fi sítí ..."
@@ -20,8 +19,6 @@ const char INTL_AB_HIER_NUR_ANDERN[] PROGMEM = "Rozšíøené nastavení (jen po
 const char INTL_SAVE[] PROGMEM = "Uložit";
 const char INTL_SENSORS[] PROGMEM = "Moduly (èidla)";
 const char INTL_MORE_SENSORS[] PROGMEM = "More Moduly (èidla)";
-const char INTL_SDS011[] PROGMEM = "SDS011 (modul {pm})";
-const char INTL_PMS[] PROGMEM = "Plantower PMS(1,3,5,6,7)003 (modul {pm})";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DNMS[] PROGMEM = "DNMS ({l_a})";
 const char INTL_DNMS_CORRECTION[] PROGMEM ="korekce v dB (A)";

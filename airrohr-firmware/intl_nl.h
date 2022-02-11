@@ -9,7 +9,6 @@
  */
 
 const char INTL_LANG[] = "NL";
-#define INTL_PM_SENSOR "Fijnstofsensor"
 const char INTL_CONFIGURATION[] PROGMEM = "Configuratie";
 #define INTL_WIFI_SETTINGS "WiFi-instellingen"
 #define INTL_WIFI_NETWORKS "Zoeken naar WiFi-netwerken ..."
@@ -20,8 +19,6 @@ const char INTL_AB_HIER_NUR_ANDERN[] PROGMEM = "Geavanceerde instellingen (enkel
 const char INTL_SAVE[] PROGMEM = "Opslaan";
 const char INTL_SENSORS[] PROGMEM = "Sensors";
 const char INTL_MORE_SENSORS[] PROGMEM = "More Sensors";
-const char INTL_SDS011[] PROGMEM = "SDS011 ({pm})";
-const char INTL_PMS[] PROGMEM = "Plantower PMS(1,3,5,6,7)003 ({pm})";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DNMS[] PROGMEM = "DNMS ({l_a})";
 const char INTL_DNMS_CORRECTION[] PROGMEM ="correctie in dB(A)";

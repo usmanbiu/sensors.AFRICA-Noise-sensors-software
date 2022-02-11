@@ -9,7 +9,6 @@
  */
 
 const char INTL_LANG[] = "IT";
-#define INTL_PM_SENSOR "Sensore polveri sottili"
 const char INTL_CONFIGURATION[] PROGMEM = "Configurazione";
 #define INTL_WIFI_SETTINGS "Impostazioni Wifi"
 #define INTL_WIFI_NETWORKS "Ricarica reti wifi ..."
@@ -20,8 +19,6 @@ const char INTL_AB_HIER_NUR_ANDERN[] PROGMEM = "Impostazioni avanzate (solo se s
 const char INTL_SAVE[] PROGMEM = "Salvare";
 const char INTL_SENSORS[] PROGMEM = "Sensori";
 const char INTL_MORE_SENSORS[] PROGMEM = "More Sensori";
-const char INTL_SDS011[] PROGMEM = "SDS011 ({pm})";
-const char INTL_PMS[] PROGMEM = "Plantower PMS(1,3,5,6,7)003 ({pm})";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DNMS[] PROGMEM = "DNMS ({l_a})";
 const char INTL_DNMS_CORRECTION[] PROGMEM ="correzione in dB(A)";

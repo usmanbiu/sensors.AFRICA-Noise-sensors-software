@@ -9,7 +9,6 @@
  */
 
 const char INTL_LANG[] = "TR";
-#define INTL_PM_SENSOR "Hava Kirliliği (Ince Toz) Ölçüm sensörü"
 const char INTL_CONFIGURATION[] PROGMEM = "Yapılandırma";
 #define INTL_WIFI_SETTINGS "WiFi bağlantı ayarları"
 #define INTL_WIFI_NETWORKS " wifi ağlar yükleniyor ..."
@@ -20,8 +19,6 @@ const char INTL_AB_HIER_NUR_ANDERN[] PROGMEM = "Ileri ayarlar: (Uzmanlar için)"
 const char INTL_SAVE[] PROGMEM = "Sakla";
 const char INTL_SENSORS[] PROGMEM = "Sensörler";
 const char INTL_MORE_SENSORS[] PROGMEM = "More Sensors";
-const char INTL_SDS011[] PROGMEM = "SDS011 ({pm})";
-const char INTL_PMS[] PROGMEM = "Plantower PMS(1,3,5,6,7)003 ({pm})";
 const char INTL_SPH0645[] PROGMEM = "SPH0645 (MIC)";
 const char INTL_DNMS[] PROGMEM = "DNMS ({l_a})";
 const char INTL_DNMS_CORRECTION[] PROGMEM ="dB (A) 'da düzeltme";

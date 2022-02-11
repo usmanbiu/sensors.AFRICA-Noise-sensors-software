@@ -113,14 +113,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 // define pin for one wire sensors
 #define ONEWIRE_PIN D0
 
-// define serial interface pins for particle sensors
-// Serial confusion: These definitions are based on SoftSerial
-// TX (transmitting) pin on one side goes to RX (receiving) pin on other side
-// SoftSerial RX PIN is D1 and goes to SDS TX
-// SoftSerial TX PIN is D2 and goes to SDS RX
-#define PM_SERIAL_RX D0
-#define PM_SERIAL_TX D0
-
 // define pins for I2C
 #define I2C_PIN_SCL D1
 #define I2C_PIN_SDA D2
@@ -164,8 +156,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 // pin assignments for lolin_d32_pro board
 #if defined(ARDUINO_LOLIN_D32_PRO)
 #define ONEWIRE_PIN D32
-#define PM_SERIAL_RX D27
-#define PM_SERIAL_TX D33
 #if defined(FLIP_I2C_PMSERIAL) // exchange the pins of the ports to use external i2c connector for gps
 #define I2C_PIN_SCL D23
 #define I2C_PIN_SDA D19
@@ -187,8 +177,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define ONEWIRE_PIN D32
 #define I2C_PIN_SCL D22
 #define I2C_PIN_SDA D17_WROOM_ONLY
-#define PM_SERIAL_RX D23
-#define PM_SERIAL_TX D2_STRAPPING
 #define GPS_SERIAL_RX D13_JTAG_TCK
 #define GPS_SERIAL_TX D0_STRAPPING
 #endif
@@ -198,8 +186,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define ONEWIRE_PIN D25 // TODO: this overlaps with LED, so it might not work
 #define I2C_PIN_SCL D22
 #define I2C_PIN_SDA D17_WROOM_ONLY
-#define PM_SERIAL_RX D23
-#define PM_SERIAL_TX D2_STRAPPING
 #define GPS_SERIAL_RX D13_JTAG_TCK
 #define GPS_SERIAL_TX D0_STRAPPING
 #endif
@@ -220,14 +206,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 
 // MicroSD
 #define SD_READ 1
-
-// SDS011, the more expensive version of the particle sensor
-#define SDS_READ 0
-#define SDS_API_PIN 1
-
-// PMS1003, PMS300, 3PMS5003, PMS6003, PMS7003
-#define PMS_READ 1
-#define PMS_API_PIN 1
 
 // DNMS Noise Measurement
 #define DNMS_READ 0
