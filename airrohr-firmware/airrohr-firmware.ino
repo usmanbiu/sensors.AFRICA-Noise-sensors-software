@@ -97,7 +97,6 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <LiquidCrystal_I2C.h>
 #include <ArduinoJson.h>
 #include <DNSServer.h>
-#include <RTClib.h>
 #include <SD.h>
 #include <SPI.h>
 #include <StreamString.h>
@@ -201,7 +200,6 @@ namespace cfg {
 	bool dnms_read = DNMS_READ;
 	char dnms_correction[LEN_DNMS_CORRECTION] = DNMS_CORRECTION;
 	bool gps_read = GPS_READ;
-	bool rtc_read = RTC_READ;
 	bool sd_read = SD_READ;
 
 	// send to "APIs"
@@ -290,7 +288,6 @@ LoggerConfig loggerConfigs[LoggerCount];
 long int sample_count = 0;
 bool dnms_init_failed = false;
 bool gps_init_failed = false;
-bool rtc_init_failed = false;
 bool airrohr_selftest_failed = false;
 
 #if defined(ESP8266)
@@ -336,11 +333,6 @@ SoftwareSerial atmega328p;
 TinyGPSPlus gps;
 
 /*****************************************************************
- * RTC declaration                                               *
- *****************************************************************/
-RTC_DS3231 rtc;
-
-/*****************************************************************
  * MicroSD declaration                                           *
  *****************************************************************/
 SoftwareSerial serialSD;
@@ -374,8 +366,6 @@ String timestamp;
 String last_data_string;
 int last_signal_strength;
 bool readGPSFromAtmega = true;
-
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 String esp_chipid;
 
@@ -574,7 +564,6 @@ void resetDailyLogCounter(bool oldconfig = false){
 		ConfigShapeEntry c;
 		memcpy_P(&c, &configShape[Config_current_date], sizeof(ConfigShapeEntry));
 		*(c.cfg_val.as_uint) = json[c.cfg_key].as<unsigned int>();
-		DateTime now = rtc.now();
 		if(now.day() != cfg::current_date){
 			cfg::current_date = now.day();
 			cfg::daily_logs = 0;
@@ -2594,8 +2583,6 @@ String fetchSensorGPSFromAtmega(){
 		}
 	}
 
-	obtain_sendTime();
-
 	debug_outln_info(FPSTR(DBG_TXT_SEP));
 	return s;
 }
@@ -2649,35 +2636,9 @@ void fetchSensorSPH0645(String& s){
   if(send_now){
 	  debug_outln_info(F("noise_Leq: "), String(value_SPH0645));
 	  add_Value2Json(s, F("noise_Leq"), String(value_SPH0645));
-	  obtain_sendTime();
   }
   
 
-}
-
-/*****************************************************************
- * Initialize RTC                                        		 *
- *****************************************************************/
-void init_RTC()
-{
-	pinMode(RTC_PIN_SDA, OUTPUT);
-	pinMode(RTC_PIN_SCL, OUTPUT);
-	if (!rtc.begin())
-	{
-		// sets time to the date this sketch was compiled
-		 rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-		// Set explicit time for example 19th May 2020 at 12 noon.
-		// rtc.adjust(DateTime(2020, 5, 19, 12, 00, 00));
-	}
-	
-}
-
-void obtain_sendTime()
-{
-	char buf[40];
-	DateTime now = rtc.now();
-	sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02dZ", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second());
-	timestamp = buf;
 }
 
 /*****************************************************************
@@ -3148,13 +3109,7 @@ static void powerOnTestSensors() {
 	{
 		debug_outln_info(F("WIFI DISABLED..."));
 	}
-
-	if (cfg::rtc_read) {
-		rtc.begin();
-		debug_outln_info(F("Read Time from RTC..."));
-		init_RTC();
-	}
-
+  
 	if (cfg::dnms_read) {
 		debug_outln_info(F("Read DNMS..."));
 		initDNMS();
@@ -3488,11 +3443,6 @@ void loop(void) {
 	if (msSince(last_update_attempt) > PAUSE_BETWEEN_UPDATE_ATTEMPTS_MS) {
 		twoStageOTAUpdate();
 		last_update_attempt = act_milli;
-	}
-
-	if (cfg::rtc_read) {
-		obtain_sendTime();
-		Serial.println(timestamp);
 	}
   
 	if(cfg::sph0645_read){
