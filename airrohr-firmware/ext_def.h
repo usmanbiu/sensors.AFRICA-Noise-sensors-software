@@ -120,10 +120,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define ATMEGA_RX D4
 #define ATMEGA_TX D3
 
-// define serial interface pins for GPS modules
-#define GPS_SERIAL_RX D0
-#define GPS_SERIAL_TX D0
-
 //define I2S pins for the SPH0645 MIC
 #define I2SI_DATA         12    // I2S data on GPIO12
 #define I2SI_BCK          13    // I2S clk on GPIO13
@@ -144,16 +140,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 // pin assignments for lolin_d32_pro board
 #if defined(ARDUINO_LOLIN_D32_PRO)
 #define ONEWIRE_PIN D32
-#if defined(FLIP_I2C_PMSERIAL) // exchange the pins of the ports to use external i2c connector for gps
-#define I2C_PIN_SCL D23
-#define I2C_PIN_SDA D19
-#define GPS_SERIAL_RX D22
-#define GPS_SERIAL_TX D21
-#else
-#define I2C_PIN_SCL D22
-#define I2C_PIN_SDA D21
-#define GPS_SERIAL_RX D19
-#define GPS_SERIAL_TX D23
 #endif
 //#define RFM69_CS D0
 //#define RFM69_RST D2
@@ -190,10 +176,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define DNMS_READ 0
 #define DNMS_API_PIN 15
 #define DNMS_CORRECTION "0.0"
-
-// GPS, preferred Neo-6M
-#define GPS_READ 1
-#define GPS_API_PIN 9
 
 // automatic firmware updates
 #define AUTO_UPDATE 0

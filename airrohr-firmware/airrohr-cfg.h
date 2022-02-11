@@ -36,7 +36,6 @@ enum ConfigShapeId {
 	Config_sph0645_read,
 	Config_dnms_read,
 	Config_dnms_correction,
-	Config_gps_read,
 	Config_send2cfa,
 	Config_ssl_cfa,
 	Config_send2dusti,
@@ -90,7 +89,6 @@ const char CFG_KEY_WIFI_ENABLED[] PROGMEM = "wifi_enabled";
 const char CFG_KEY_SPH0645_READ[] PROGMEM = "sph0645_read";
 const char CFG_KEY_DNMS_READ[] PROGMEM = "dnms_read";
 const char CFG_KEY_DNMS_CORRECTION[] PROGMEM = "dnms_correction";
-const char CFG_KEY_GPS_READ[] PROGMEM = "gps_read";
 const char CFG_KEY_SEND2CFA[] PROGMEM = "send2cfa";
 const char CFG_KEY_SSL_CFA[] PROGMEM = "ssl_cfa";
 const char CFG_KEY_SEND2DUSTI[] PROGMEM = "send2dusti";
@@ -144,7 +142,6 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SPH0645_READ), &cfg::sph0645_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_DNMS_READ), &cfg::dnms_read },
 	{ Config_Type_String, sizeof(cfg::dnms_correction)-1, FPSTR(CFG_KEY_DNMS_CORRECTION), cfg::dnms_correction },
-	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_GPS_READ), &cfg::gps_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND2CFA), &cfg::send2cfa },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SSL_CFA), &cfg::ssl_cfa },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND2DUSTI), &cfg::send2dusti },
