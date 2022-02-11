@@ -33,13 +33,10 @@ enum ConfigShapeId {
 	Config_fs_pwd,
 	Config_www_basicauth_enabled,
 	Config_wifi_enabled,
-	Config_send_logged_data,
 	Config_sph0645_read,
 	Config_dnms_read,
 	Config_dnms_correction,
 	Config_gps_read,
-	Config_rtc_read,
-	Config_sd_read,
 	Config_send2cfa,
 	Config_ssl_cfa,
 	Config_send2dusti,
@@ -50,7 +47,6 @@ enum ConfigShapeId {
 	Config_send2fsapp,
 	Config_send2aircms,
 	Config_send2csv,
-	Config_send2sd,
 	Config_auto_update,
 	Config_use_beta,
 	Config_has_display,
@@ -81,10 +77,6 @@ enum ConfigShapeId {
 	Config_pwd_influx,
 	Config_measurement_name_influx,
 	Config_ssl_influx,
-	Config_total_logs,
-	Config_daily_logs,
-	Config_current_date,
-	Config_log_file_id,
 };
 const char CFG_KEY_CURRENT_LANG[] PROGMEM = "current_lang";
 const char CFG_KEY_WLANSSID[] PROGMEM = "wlanssid";
@@ -95,13 +87,10 @@ const char CFG_KEY_FS_SSID[] PROGMEM = "fs_ssid";
 const char CFG_KEY_FS_PWD[] PROGMEM = "fs_pwd";
 const char CFG_KEY_WWW_BASICAUTH_ENABLED[] PROGMEM = "www_basicauth_enabled";
 const char CFG_KEY_WIFI_ENABLED[] PROGMEM = "wifi_enabled";
-const char CFG_KEY_SEND_LOGGED_DATA[] PROGMEM = "send_logged_data";
 const char CFG_KEY_SPH0645_READ[] PROGMEM = "sph0645_read";
 const char CFG_KEY_DNMS_READ[] PROGMEM = "dnms_read";
 const char CFG_KEY_DNMS_CORRECTION[] PROGMEM = "dnms_correction";
 const char CFG_KEY_GPS_READ[] PROGMEM = "gps_read";
-const char CFG_KEY_RTC_READ[] PROGMEM = "rtc_read";
-const char CFG_KEY_SD_READ[] PROGMEM = "sd_read";
 const char CFG_KEY_SEND2CFA[] PROGMEM = "send2cfa";
 const char CFG_KEY_SSL_CFA[] PROGMEM = "ssl_cfa";
 const char CFG_KEY_SEND2DUSTI[] PROGMEM = "send2dusti";
@@ -112,7 +101,6 @@ const char CFG_KEY_SEND2SENSEMAP[] PROGMEM = "send2sensemap";
 const char CFG_KEY_SEND2FSAPP[] PROGMEM = "send2fsapp";
 const char CFG_KEY_SEND2AIRCMS[] PROGMEM = "send2aircms";
 const char CFG_KEY_SEND2CSV[] PROGMEM = "send2csv";
-const char CFG_KEY_SEND2SD[] PROGMEM = "send2sd";
 const char CFG_KEY_AUTO_UPDATE[] PROGMEM = "auto_update";
 const char CFG_KEY_USE_BETA[] PROGMEM = "use_beta";
 const char CFG_KEY_HAS_DISPLAY[] PROGMEM = "has_display";
@@ -143,10 +131,6 @@ const char CFG_KEY_USER_INFLUX[] PROGMEM = "user_influx";
 const char CFG_KEY_PWD_INFLUX[] PROGMEM = "pwd_influx";
 const char CFG_KEY_MEASUREMENT_NAME_INFLUX[] PROGMEM = "measurement_name_influx";
 const char CFG_KEY_SSL_INFLUX[] PROGMEM = "ssl_influx";
-const char CFG_KEY_TOTAL_LOGS[] PROGMEM = "total_logs";
-const char CFG_KEY_DAILY_LOGS[] PROGMEM = "daily_logs";
-const char CFG_KEY_CURRENT_DATE[] PROGMEM = "current_date";
-const char CFG_KEY_LOG_FILE_ID[] PROGMEM = "log_file_id";
 static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_String, sizeof(cfg::current_lang)-1, FPSTR(CFG_KEY_CURRENT_LANG), cfg::current_lang },
 	{ Config_Type_String, sizeof(cfg::wlanssid)-1, FPSTR(CFG_KEY_WLANSSID), cfg::wlanssid },
@@ -157,13 +141,10 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Password, sizeof(cfg::fs_pwd)-1, FPSTR(CFG_KEY_FS_PWD), cfg::fs_pwd },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_WWW_BASICAUTH_ENABLED), &cfg::www_basicauth_enabled },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_WIFI_ENABLED), &cfg::wifi_enabled },
-	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND_LOGGED_DATA), &cfg::send_logged_data },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SPH0645_READ), &cfg::sph0645_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_DNMS_READ), &cfg::dnms_read },
 	{ Config_Type_String, sizeof(cfg::dnms_correction)-1, FPSTR(CFG_KEY_DNMS_CORRECTION), cfg::dnms_correction },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_GPS_READ), &cfg::gps_read },
-	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_RTC_READ), &cfg::rtc_read },
-	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SD_READ), &cfg::sd_read },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND2CFA), &cfg::send2cfa },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SSL_CFA), &cfg::ssl_cfa },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND2DUSTI), &cfg::send2dusti },
@@ -174,7 +155,6 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND2FSAPP), &cfg::send2fsapp },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND2AIRCMS), &cfg::send2aircms },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND2CSV), &cfg::send2csv },
-	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SEND2SD), &cfg::send2sd },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_AUTO_UPDATE), &cfg::auto_update },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_USE_BETA), &cfg::use_beta },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_HAS_DISPLAY), &cfg::has_display },
@@ -205,8 +185,4 @@ static constexpr ConfigShapeEntry configShape[] PROGMEM = {
 	{ Config_Type_Password, sizeof(cfg::pwd_influx)-1, FPSTR(CFG_KEY_PWD_INFLUX), cfg::pwd_influx },
 	{ Config_Type_String, sizeof(cfg::measurement_name_influx)-1, FPSTR(CFG_KEY_MEASUREMENT_NAME_INFLUX), cfg::measurement_name_influx },
 	{ Config_Type_Bool, 0, FPSTR(CFG_KEY_SSL_INFLUX), &cfg::ssl_influx },
-	{ Config_Type_UInt, 0, FPSTR(CFG_KEY_TOTAL_LOGS), &cfg::total_logs },
-	{ Config_Type_UInt, 0, FPSTR(CFG_KEY_DAILY_LOGS), &cfg::daily_logs },
-	{ Config_Type_UInt, 0, FPSTR(CFG_KEY_CURRENT_DATE), &cfg::current_date },
-	{ Config_Type_UInt, 0, FPSTR(CFG_KEY_LOG_FILE_ID), &cfg::log_file_id },
 };
