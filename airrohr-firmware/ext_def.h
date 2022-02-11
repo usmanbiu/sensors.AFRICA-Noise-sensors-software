@@ -133,10 +133,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define GPS_SERIAL_RX D0
 #define GPS_SERIAL_TX D0
 
-// define pins for RTC I2C interface
-#define RTC_PIN_SDA D2
-#define RTC_PIN_SCL D1
-
 // define pins for the micro_sd logger shield
 #define SD_SCK D5
 #define SD_MISO D6
@@ -213,10 +209,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 //SPH0645 MEMS Microphone
 #define SPHO645_READ  1
 #define SPH0645_API_PIN 15
-
-// RTC
-#define RTC_READ 1
-#define RTC_API_PIN 2
 
 // MicroSD
 #define SD_READ 1
