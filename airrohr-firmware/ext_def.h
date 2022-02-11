@@ -216,9 +216,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define GPS_READ 1
 #define GPS_API_PIN 9
 
-// MHZ19 CO2 sensor
-#define MHZ19_READ 0
-
 // automatic firmware updates
 #define AUTO_UPDATE 0
 
