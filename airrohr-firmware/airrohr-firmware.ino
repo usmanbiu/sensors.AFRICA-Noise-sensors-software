@@ -299,12 +299,6 @@ SH1106 display_sh1106(0x3c, I2C_PIN_SDA, I2C_PIN_SCL);
 LiquidCrystal_I2C* lcd_1602 = nullptr;
 LiquidCrystal_I2C* lcd_2004 = nullptr;
 
-
-/****************************************************************
- * ATMEGA328P declaration
- * **************************************************************/
-SoftwareSerial atmega328p;
-
 bool send_now = false;
 unsigned long starttime;
 unsigned long time_point_device_start_ms;
@@ -337,6 +331,8 @@ uint8_t sntp_time_set;
 unsigned long count_sends = 0;
 unsigned long last_display_millis = 0;
 uint8_t next_display_count = 0;
+
+String last_data_string;
 
 struct struct_wifiInfo {
 	char ssid[LEN_WLANSSID];
@@ -1522,7 +1518,7 @@ static void webserver_status() {
 	}
 	if(cfg::wifi_enabled){
 		time_t now = time(nullptr);
-		add_table_row_from_value(page_content, FPSTR(INTL_TIME), ctime(&now));
+		add_table_row_from_value(page_content, FPSTR("TIME"), ctime(&now));
 	}
 	add_table_row_from_value(page_content, F("Uptime"), delayToString(millis() - time_point_device_start_ms));
 	add_table_row_from_value(page_content, F("Reset Reason"), ESP.getResetReason());
@@ -2093,7 +2089,7 @@ static unsigned long sendCFA(const String &data, const int pin, const __FlashStr
 		data_CFA.replace(replace_str, emptyString);
 		data_CFA += "], \"timestamp\":";
 		data_CFA += "\"";
-		data_CFA += timestamp;
+		//data_CFA += timestamp;
 		data_CFA += "\"";
 		data_CFA += "}";
 		Serial.println(data_CFA);
@@ -2900,7 +2896,6 @@ static unsigned long sendDataToOptionalApis(const String &data) {
 
 void setup(void) {
 	Serial.begin(9600);	// Output to Serial at 9600 baud
-	atmega328p.begin(9600, SWSERIAL_8N1,ATMEGA_TX,ATMEGA_RX,false,256);
 	
 #if defined(WIFI_LoRa_32_V2)
 	// reset the OLED display, e.g. of the heltec_wifi_lora_32 board
