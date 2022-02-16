@@ -1,6 +1,6 @@
-# airRohr Sensor Firmware for SPH0645 and DNMS sensors.
+# airRohr Sensor Firmware for SPH0645 and DNMS sensors
 
-## Features:
+## Features
 
 * Configuration via HTTP in local WiFi or with a Sensor-as Access-Point
 * Support for OLED- and LCD-Displays (SSD1306, SH1106 and LCD1602, LCD2004)
@@ -29,7 +29,6 @@ Configurable is
 The unencrypted Access Point for initial configuration will turn itself off after about
 10 minutes. In order to reactivate please power cycle the board.
 
-
 ## Debug via USB-Serial
 
 Connecting/Powering via a computer USB will provide USB serial with the settings 9600 baud 8N1.
@@ -41,7 +40,6 @@ there.
 All measurements can also be read as CSV via USB-Serial when using the USB port in the
 settings 9600 Baud 8N1. In order to avoid interfering of debug options (see earlier section)
 set debug to None in the configuration.
-
 
 ## Wiring
 
