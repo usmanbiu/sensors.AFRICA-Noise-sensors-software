@@ -116,10 +116,6 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 #define I2C_PIN_SCL D1
 #define I2C_PIN_SDA D2
 
-//define pins for ATMEGA328P
-#define ATMEGA_RX D4
-#define ATMEGA_TX D3
-
 //define I2S pins for the SPH0645 MIC
 #define I2SI_DATA         12    // I2S data on GPIO12
 #define I2SI_BCK          13    // I2S clk on GPIO13
@@ -144,7 +140,7 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 //#define RFM69_CS D0
 //#define RFM69_RST D2
 //#define RFM69_INT D4
-#endif
+
 
 // pin assignments for heltec_wifi_lora_32_V2 board
 #if defined(WIFI_LoRa_32_V2)
