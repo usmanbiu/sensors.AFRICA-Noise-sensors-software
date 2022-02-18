@@ -45,6 +45,12 @@ set debug to None in the configuration.
 
 Please refer to the [Pinout of NodeMCU v2 and v3](https://github.com/opendata-stuttgart/meta/wiki/Pinouts-NodeMCU-v2,-v3) for much more detailed information about the individual pin functions.
 
+### GSM
+* VCC  -> pin VU
+* GND  -> pin GND
+* RX   -> pin D1
+* TX   -> pin D2
+
 ### LCD1602 (I2C, 5V - check your version)
 
 * VCC  ->  Pin VU
