@@ -101,7 +101,7 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include <DallasTemperature.h>
 #include "./dnms_i2c.h"
 #include "./SPH0645.h"
-#include <./Adafruit_FONA.h>
+#include <Adafruit_FONA.h>
 
 #if defined(INTL_BG)
 #include "intl_bg.h"
