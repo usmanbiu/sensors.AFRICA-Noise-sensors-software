@@ -119,6 +119,7 @@ static const char MEASUREMENT_NAME_INFLUX[] PROGMEM = " ";
 // define pins for GSM modules
 #define FONA_RX D1
 #define FONA_TX D2
+#define FONA_RST D3
 
 //define I2S pins for the SPH0645 MIC
 #define I2SI_DATA         12    // I2S data on GPIO12
