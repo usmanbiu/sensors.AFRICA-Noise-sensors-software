@@ -103,6 +103,8 @@ String SOFTWARE_VERSION(SOFTWARE_VERSION_STR);
 #include "./SPH0645.h"
 #include <Adafruit_FONA.h>
 
+#include <algorithm> // Used for the Noise maximum filter
+
 #if defined(INTL_BG)
 #include "intl_bg.h"
 #elif defined(INTL_CZ)
@@ -345,6 +347,10 @@ int last_sendData_returncode;
 
 //Variable to store SPH0645 Mic value
 float value_SPH0645 = 0.0;
+
+/* Variables for Sound Pressure Level Filtering */
+#define SAMPLE_SIZE 200
+float sample[SAMPLE_SIZE];
 
 int last_signal_strength;
 
@@ -2550,24 +2556,30 @@ void Reinit_SPH0645(){
 void fetchSensorSPH0645(String& s){
 	
 	if (rx_buf_flag) {
-    for (int x = 0; x < SLC_BUF_LEN; x++) {
-      if (i2s_slc_buf_pntr[rx_buf_idx][x] > 0) {
-	 	float sensor_value = convert(i2s_slc_buf_pntr[rx_buf_idx][x]);
-		 value_SPH0645 = convert_to_dB(sensor_value);
-		  }
-	 else{
-		 debug_outln_error(F("No Mic Value available"));
-		 Reinit_SPH0645(); //Give SPI bus pins back to the MIC
-		 delay(1000);
-	 }
-    }
-    rx_buf_flag = false;
-  }
+		for (int i = 0; i < SAMPLE_SIZE; i++) {
+			for (int x = 0; x < SLC_BUF_LEN; x++) {
+				if (i2s_slc_buf_pntr[rx_buf_idx][x] > 0) {
+					float sensor_value = convert(i2s_slc_buf_pntr[rx_buf_idx][x]);
+					float dBs = convert_to_dB(sensor_value);
+					sample[i] = dBs;
+				}
+				else{
+					debug_outln_error(F("No Mic Value available"));
+					Reinit_SPH0645(); //Give SPI bus pins back to the MIC
+					delay(1000);
+				}
+			}
+			rx_buf_flag = false;
+		}
+		/* Find the maximum value in the sample array and set as current value */
+		float *max_SPL_sample = std::max_element(sample, sample + SAMPLE_SIZE);
+		value_SPH0645 = *max_SPL_sample;
+  	}
 
-  if(send_now){
-	  debug_outln_info(F("noise_Leq: "), String(value_SPH0645));
-	  add_Value2Json(s, F("noise_Leq"), String(value_SPH0645));
-  }
+	if(send_now){
+		debug_outln_info(F("noise_Leq: "), String(value_SPH0645));
+		add_Value2Json(s, F("noise_Leq"), String(value_SPH0645));
+	}
   
 
 }
