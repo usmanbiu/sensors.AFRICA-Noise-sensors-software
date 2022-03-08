@@ -2240,10 +2240,10 @@ static unsigned long sendData(const LoggerEntry logger, const String& data, cons
 		String gprs_request_head = F("X-PIN: "); gprs_request_head += String(pin) + "\\r\\n";
 		gprs_request_head += F("X-Sensor: esp8266-"); gprs_request_head += esp_chipid;
 
-		debug_out(F("Start connecting via GPRS"), DEBUG_MIN_INFO);
+		debug_out(F("Start connecting via GPRS \n"), DEBUG_MIN_INFO);
 		debug_out(F("HOST "), DEBUG_MIN_INFO);
 		debug_out(s_Host, DEBUG_MIN_INFO);
-		debug_out(F("URL "),DEBUG_MIN_INFO);
+		debug_out(F("\t URL "),DEBUG_MIN_INFO);
 		debug_out(s_url, DEBUG_MIN_INFO);
 		debug_out(gprs_request_head, DEBUG_MIN_INFO);
 
@@ -2258,13 +2258,14 @@ static unsigned long sendData(const LoggerEntry logger, const String& data, cons
 		char gprs_url[strlen(url_copy)];
 		strcpy(gprs_url, url_copy);
 
-		Serial.println("POST URL  " + String(gprs_url));
+		Serial.println("\t POST URL  " + String(gprs_url));
 		
 
-		debug_out(F("Sending data via gsm"), DEBUG_MIN_INFO); 
+		debug_out(F("Sending data via gsm \n"), DEBUG_MIN_INFO); 
 		debug_out(F("http://"), DEBUG_MIN_INFO);
 		debug_out(gprs_url, DEBUG_MIN_INFO);
 		debug_out(gprs_data, DEBUG_MIN_INFO);
+		debug_out(F("\n"), DEBUG_MIN_INFO);
 			
 		
 		if(fona.GPRSstate() != GPRS_CONNECTED){
@@ -2342,9 +2343,9 @@ static unsigned long sendData(const LoggerEntry logger, const String& data, cons
 		debug_outln_info(F("Failed connecting to "), s_Host);
 	}
 
-		wdt_reset();
-		yield();
-		return millis() - start_send;
+	wdt_reset();
+	yield();
+	return millis() - start_send;
 	#endif
 }
 
