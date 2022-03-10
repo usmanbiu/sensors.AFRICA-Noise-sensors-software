@@ -57,7 +57,7 @@ struct LoggerConfig {
 
 // IMPORTANT: NO MORE CHANGES TO VARIABLE NAMES NEEDED FOR EXTERNAL APIS
 static const char HOST_CFA[] PROGMEM = "api.sensors.africa";
-static const char URL_CFA[] PROGMEM = " /v1/push-sensor-data/";
+static const char URL_CFA[] PROGMEM = "/v1/push-sensor-data/";
 #define PORT_CFA 80
 
 static const char HOST_MADAVI[] PROGMEM = "api-rrd.madavi.de";

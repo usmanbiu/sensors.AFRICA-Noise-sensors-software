@@ -176,7 +176,7 @@ const unsigned long DURATION_BEFORE_FORCED_RESTART_MS = ONE_DAY_IN_MS * 28;	// f
 namespace cfg {
 	unsigned debug = DEBUG;
 
-	unsigned time_for_wifi_config = 600000;
+	unsigned time_for_wifi_config = 60000;
 	unsigned sending_intervall_ms = 30000;
 
 	char current_lang[3];
@@ -318,7 +318,7 @@ uint8_t GPRS_CONNECTED = 1;
 bool gsm_capable = 1;
 char gsm_pin[5] = "";
 
-char gprs_apn[100] = "";
+char gprs_apn[100] = "internet";
 char gprs_username[100] = "";
 char gprs_password[100] = "";
 #endif
@@ -2083,8 +2083,6 @@ void connectGSM()
 
 		unlock_pin();
 
-		fona.setGPRSNetworkSettings(FPSTR(gprs_apn), FPSTR(gprs_username), FPSTR(gprs_password));
-
 		char imei[16] = {0}; // MUST use a 16 character buffer for IMEI!
 		uint8_t imeiLen = fona.getIMEI(imei);
 		if (imeiLen > 0)
@@ -2093,6 +2091,8 @@ void connectGSM()
 			debug_out(String(imei), DEBUG_MIN_INFO);
 		}
 
+		fona.setGPRSNetworkSettings(F("internet"), F(""), F(""));
+		
 		while ((fona.getNetworkStatus() != GSM_CONNECTED) && (retry_count < 40))
 		{
 			Serial.println("Not registered on network");
@@ -2129,12 +2129,15 @@ void connectGSM()
 		else
 		{
 			enableGPRS();
+			Serial.println("GPRS ENABLED");
 		}
 	}
 }
 
 void enableGPRS()
-{
+{	
+	//fona.setGPRSNetworkSettings(FONAFlashStringPtr(gprs_apn), FONAFlashStringPtr(gprs_username), FONAFlashStringPtr(gprs_password));
+	
 	int retry_count = 0;
 	while ((fona.GPRSstate() != GPRS_CONNECTED) && (retry_count < 40))
 	{
@@ -2143,7 +2146,13 @@ void enableGPRS()
 		retry_count++;
 	}
 
-	fona.setGPRSNetworkSettings(FONAFlashStringPtr("internet"), FONAFlashStringPtr(""), FONAFlashStringPtr(""));
+	fona.enableGPRS(true);
+}
+
+void disableGPRS()
+{	
+	fona.enableGPRS(false);
+	delay(3000);
 }
 
 void restart_GSM()
@@ -2182,19 +2191,17 @@ static void unlock_pin()
 /*****************************************************************
  * send data to rest api                                         *
  *****************************************************************/
-static unsigned long sendData(const LoggerEntry logger, const String &data, const int pin, const char *host, const char *url)
-{
+static unsigned long sendData(const LoggerEntry logger, const String& data, const int pin, const char* host, const char* url) {
 #if defined(ESP8266)
 	unsigned long start_send = millis();
-	const __FlashStringHelper *contentType;
+	const __FlashStringHelper* contentType;
 	int result = 0;
 	int port;
 
 	String s_Host(FPSTR(host));
 	String s_url(FPSTR(url));
 
-	switch (logger)
-	{
+	switch (logger) {
 	case Loggeraircms:
 		contentType = FPSTR(TXT_CONTENT_TYPE_TEXT_PLAIN);
 		break;
@@ -2224,74 +2231,70 @@ static unsigned long sendData(const LoggerEntry logger, const String &data, cons
 	request_head += String(data.length(), DEC) + "\r\n";
 	request_head += F("Connection: close\r\n\r\n");
 
-	if (gsm_capable)
-	{
+	if (gsm_capable){
 		delay(3000);
 		int retry_count = 0;
 		uint16_t statuscode;
 		int16_t length;
 
-		String gprs_request_head = F("X-PIN: ");
-		gprs_request_head += String(pin) + "\\r\\n";
-		gprs_request_head += F("X-Sensor: esp8266-");
-		gprs_request_head += esp_chipid;
+		String gprs_request_head = F("X-PIN: "); gprs_request_head += String(pin) + "\\r\\n";
+		gprs_request_head += F("X-Sensor: esp8266-"); gprs_request_head += esp_chipid;
 
-		debug_out(F("Start connecting via GPRS"), DEBUG_MIN_INFO);
+		debug_out(F("Start connecting via GPRS \n"), DEBUG_MIN_INFO);
 		debug_out(F("HOST "), DEBUG_MIN_INFO);
 		debug_out(s_Host, DEBUG_MIN_INFO);
-		debug_out(F("URL "), DEBUG_MIN_INFO);
+		debug_out(F("\t URL "),DEBUG_MIN_INFO);
 		debug_out(s_url, DEBUG_MIN_INFO);
 		debug_out(gprs_request_head, DEBUG_MIN_INFO);
 
-		const char *data_copy = data.c_str();
+		const char* data_copy = data.c_str();
 		char gprs_data[strlen(data_copy)];
 		strcpy(gprs_data, data_copy);
 
+		
 		String post_url = String(s_Host);
 		post_url += String(s_url);
-		const char *url_copy = post_url.c_str();
+		const char* url_copy = post_url.c_str();
 		char gprs_url[strlen(url_copy)];
 		strcpy(gprs_url, url_copy);
 
-		Serial.println("POST URL  " + String(gprs_url));
+		Serial.println("\t POST URL  " + String(gprs_url));
+		
 
-		debug_out(F("Sending data via gsm"), DEBUG_MIN_INFO);
+		debug_out(F("Sending data via gsm \n"), DEBUG_MIN_INFO); 
 		debug_out(F("http://"), DEBUG_MIN_INFO);
 		debug_out(gprs_url, DEBUG_MIN_INFO);
 		debug_out(gprs_data, DEBUG_MIN_INFO);
-
-		if (fona.GPRSstate() != GPRS_CONNECTED)
-		{
-			debug_out(F("************* Reconnect GPRS *************"), DEBUG_MIN_INFO);
-			enableGPRS();
+		debug_out(F("\n"), DEBUG_MIN_INFO);
+			
+		
+		if(fona.GPRSstate() != GPRS_CONNECTED){
+		debug_out(F("************* Reconnect GPRS *************"), DEBUG_MIN_INFO); 
+		enableGPRS();
 		}
 
 		flushSerial();
 		debug_out(F("## Sending via gsm\n\n"), DEBUG_MIN_INFO);
-
-		if (!fona.HTTP_POST_start((char *)gprs_url, F("application/json"), gprs_request_head, (uint8_t *)gprs_data, strlen(gprs_data), &statuscode, (uint16_t *)&length))
-		{
-			debug_outln_error(F("Failed with status code "));
-			debug_out(String(statuscode), DEBUG_ERROR);
-			restart_GSM();
-			return true;
+		
+		if (!fona.HTTP_POST_start((char *) gprs_url, F("application/json"), gprs_request_head, (uint8_t *) gprs_data, strlen(gprs_data), &statuscode, (uint16_t *)&length)) {
+		debug_outln_error(F("Failed with status code "));
+		debug_out(String(statuscode), DEBUG_ERROR);
+		restart_GSM();
+		return true;
 		}
-		while (length > 0)
-		{
-			while (fona.available())
-			{
+		while (length > 0) {
+			while (fona.available()) {
 				char c = fona.read();
-// Serial.write is too slow, we'll write directly to Serial register!
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
+				// Serial.write is too slow, we'll write directly to Serial register!
+				#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
 				loop_until_bit_is_set(UCSR0A, UDRE0); /* Wait until data register empty. */
 				UDR0 = c;
-#else
+				#else
 				Serial.write(c);
-// debug_out(String(c), DEBUG_MAX_INFO, 0);
-#endif
+				//debug_out(String(c), DEBUG_MAX_INFO, 0);
+				#endif
 				length--;
-				if (!length)
-					break;
+				if (! length) break;
 			}
 		}
 		debug_out(F("\n\n## End sending via gsm \n\n"), DEBUG_MIN_INFO);
@@ -2335,8 +2338,7 @@ static unsigned long sendData(const LoggerEntry logger, const String &data, cons
 			}
 			http.end();
 		}
-	}
-	else
+	} else
 	{
 		debug_outln_info(F("Failed connecting to "), s_Host);
 	}
@@ -2344,7 +2346,7 @@ static unsigned long sendData(const LoggerEntry logger, const String &data, cons
 	wdt_reset();
 	yield();
 	return millis() - start_send;
-#endif
+	#endif
 }
 
 /*****************************************************************
@@ -2363,11 +2365,7 @@ static unsigned long sendCFA(const String &data, const int pin, const __FlashStr
 		data_CFA += data;
 		data_CFA.remove(data_CFA.length() - 1);
 		data_CFA.replace(replace_str, emptyString);
-		data_CFA += "], \"timestamp\":";
-		data_CFA += "\"";
-		//data_CFA += timestamp;
-		data_CFA += "\"";
-		data_CFA += "}";
+		data_CFA += "]}";
 		Serial.println(data_CFA);
 		
 		sum_send_time = sendData(LoggerCFA, data_CFA, pin, HOST_CFA, URL_CFA);
@@ -2554,29 +2552,28 @@ void Reinit_SPH0645(){
  * **************************************************************/
 
 void fetchSensorSPH0645(String& s){
-	
-	if (rx_buf_flag) {
-		for (int i = 0; i < SAMPLE_SIZE; i++) {
-			for (int x = 0; x < SLC_BUF_LEN; x++) {
-				if (i2s_slc_buf_pntr[rx_buf_idx][x] > 0) {
-					float sensor_value = convert(i2s_slc_buf_pntr[rx_buf_idx][x]);
-					float dBs = convert_to_dB(sensor_value);
-					sample[i] = dBs;
-				}
-				else{
-					debug_outln_error(F("No Mic Value available"));
-					Reinit_SPH0645(); //Give SPI bus pins back to the MIC
-					delay(1000);
-				}
-			}
-			rx_buf_flag = false;
-		}
-		/* Find the maximum value in the sample array and set as current value */
-		float *max_SPL_sample = std::max_element(sample, sample + SAMPLE_SIZE);
-		value_SPH0645 = *max_SPL_sample;
-  	}
-
 	if(send_now){
+		if (rx_buf_flag) {
+			for (int i = 0; i < SAMPLE_SIZE; i++) {
+				for (int x = 0; x < SLC_BUF_LEN; x++) {
+					if (i2s_slc_buf_pntr[rx_buf_idx][x] > 0) {
+						float sensor_value = convert(i2s_slc_buf_pntr[rx_buf_idx][x]);
+						float dBs = convert_to_dB(sensor_value);
+						sample[i] = dBs;
+					}
+					else{
+						debug_outln_error(F("No Mic Value available"));
+						Reinit_SPH0645(); //Give SPI bus pins back to the MIC
+						delay(1000);
+					}
+				}
+				rx_buf_flag = false;
+			}
+			/* Find the maximum value in the sample array and set as current value */
+			float *max_SPL_sample = std::max_element(sample, sample + SAMPLE_SIZE);
+			value_SPH0645 = *max_SPL_sample;
+		}
+
 		debug_outln_info(F("noise_Leq: "), String(value_SPH0645));
 		add_Value2Json(s, F("noise_Leq"), String(value_SPH0645));
 	}
@@ -3312,7 +3309,7 @@ void loop(void) {
 
 		if(cfg::sph0645_read){
 			data += result_SPH0645;
-      		if(cfg::wifi_enabled){
+      		if(cfg::wifi_enabled || cfg::gsm_capable){
 				sum_send_time += sendCFA(result_SPH0645, SPH0645_API_PIN, FPSTR(SENSORS_SPH0645), "SPH0645_");
 				sum_send_time += sendSensorCommunity(result_SPH0645, SPH0645_API_PIN, FPSTR(SENSORS_SPH0645), "SHP0645_");
 			  } 
@@ -3321,7 +3318,7 @@ void loop(void) {
 			// getting noise measurement values from dnms (optional)
 			fetchSensorDNMS(result);
 			data += result;
-      		if(cfg::wifi_enabled) {
+      		if(cfg::wifi_enabled || cfg::gsm_capable) {
 				sum_send_time += sendCFA(result, DNMS_API_PIN, FPSTR(SENSORS_DNMS), "DNMS_");
 				sum_send_time += sendSensorCommunity(result, DNMS_API_PIN, FPSTR(SENSORS_DNMS), "DNMS_");
 			}
